@@ -1,15 +1,27 @@
-#include <gtest/gtest.h>
+#include <filesystem>
 #include <stdexcept>
 #include <vector>
 
+#include <gtest/gtest.h>
+
 #include "storage/pager/pager.h"
+
+namespace fs = std::filesystem;
 
 using jubilant::storage::PageType;
 using jubilant::storage::Pager;
 using jubilant::storage::kDefaultPageSize;
 
+namespace {
+
+fs::path TestPageFile() {
+  return fs::temp_directory_path() / "jubilant-pager-tests.pages";
+}
+
+}  // namespace
+
 TEST(PagerTest, AllocatesPagesSequentially) {
-  auto pager = Pager::Open("/tmp/data.pages", kDefaultPageSize);
+  auto pager = Pager::Open(TestPageFile(), kDefaultPageSize);
   const auto first = pager.Allocate(PageType::kLeaf);
   const auto second = pager.Allocate(PageType::kInternal);
 
@@ -18,7 +30,7 @@ TEST(PagerTest, AllocatesPagesSequentially) {
 }
 
 TEST(PagerTest, WritesAndReadsPagePayload) {
-  auto pager = Pager::Open("/tmp/data.pages", kDefaultPageSize);
+  auto pager = Pager::Open(TestPageFile(), kDefaultPageSize);
   const auto page_id = pager.Allocate(PageType::kLeaf);
 
   std::vector<std::byte> payload(kDefaultPageSize);
@@ -36,7 +48,7 @@ TEST(PagerTest, WritesAndReadsPagePayload) {
 }
 
 TEST(PagerTest, RejectsInvalidPageSize) {
-  auto pager = Pager::Open("/tmp/data.pages", kDefaultPageSize);
+  auto pager = Pager::Open(TestPageFile(), kDefaultPageSize);
   jubilant::storage::Page bad{};
   bad.id = 0;
   bad.type = PageType::kLeaf;

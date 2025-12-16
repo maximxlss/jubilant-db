@@ -125,8 +125,17 @@ target_compile_options(jubectl
 if(JUBILANT_BUILD_TESTS)
   enable_testing()
 
+  set(JUBILANT_TEST_SOURCES
+    tests/btree_tests.cpp
+    tests/checkpoint_tests.cpp
+    tests/pager_tests.cpp
+    tests/transaction_context_tests.cpp
+    tests/value_log_tests.cpp
+    tests/wal_tests.cpp
+  )
+
   add_executable(unit_tests
-    tests/unit_tests.cpp
+    ${JUBILANT_TEST_SOURCES}
   )
 
   target_link_libraries(unit_tests
