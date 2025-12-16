@@ -13,23 +13,14 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-    env:
-      CCACHE_DIR: ${{ runner.temp }}/ccache
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Ensure compiler cache directory exists
-        run: mkdir -p "${{ env.CCACHE_DIR }}"
-
       - name: Prepare compiler cache
-        uses: actions/cache@v4
+        uses: hendrikmuhs/ccache-action@v1.2
         with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ccache-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake', 'CMakePresets.json') }}
-          restore-keys: |
-            ccache-${{ runner.os }}-
+          key: ${{ github.job }}-${{ matrix.os }}
 
       - name: Install build dependencies
         run: |
