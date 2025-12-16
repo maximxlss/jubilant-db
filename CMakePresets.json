@@ -64,13 +64,17 @@
       "name": "dev-debug",
       "displayName": "Test Debug",
       "configurePreset": "dev-debug",
-      "outputOnFailure": true
+      "output": {
+        "outputOnFailure": true
+      }
     },
     {
       "name": "dev-release",
       "displayName": "Test Release",
       "configurePreset": "dev-release",
-      "outputOnFailure": true
+      "output": {
+        "outputOnFailure": true
+      }
     }
   ]
 }
