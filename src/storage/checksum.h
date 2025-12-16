@@ -11,4 +11,3 @@ namespace jubilant::storage {
 std::uint32_t ComputeCrc32(std::span<const std::byte> data);
 
 }  // namespace jubilant::storage
-

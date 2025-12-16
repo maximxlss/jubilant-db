@@ -10,8 +10,7 @@ auto ConfigLoader::Default(std::filesystem::path db_path) -> Config {
   return cfg;
 }
 
-auto ConfigLoader::LoadFromFile(
-    const std::filesystem::path& /*path*/) -> std::optional<Config> {
+auto ConfigLoader::LoadFromFile(const std::filesystem::path& /*path*/) -> std::optional<Config> {
   // TOML parsing will be added once configuration is introduced. Returning
   // nullopt allows callers to fall back to defaults while keeping the API
   // stable for tests.

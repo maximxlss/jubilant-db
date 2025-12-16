@@ -28,11 +28,9 @@ class ManifestStore {
  public:
   explicit ManifestStore(const std::filesystem::path& base_dir);
 
-  [[nodiscard]] static auto NewDefault(std::string uuid_seed)
-      -> ManifestRecord;
+  [[nodiscard]] static auto NewDefault(std::string uuid_seed) -> ManifestRecord;
   [[nodiscard]] auto Load() const -> std::optional<ManifestRecord>;
-  [[nodiscard]] static auto Validate(const ManifestRecord& manifest)
-      -> ManifestValidationResult;
+  [[nodiscard]] static auto Validate(const ManifestRecord& manifest) -> ManifestValidationResult;
   auto Persist(const ManifestRecord& manifest) -> bool;
 
  private:

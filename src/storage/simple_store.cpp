@@ -17,9 +17,8 @@ auto GenerateUuidLikeString() -> std::string {
   constexpr int kHalfUuidHexLength = 16;
   constexpr int kNibbleBits = 4;
   constexpr std::uint64_t kNibbleMask = 0xFULL;
-  constexpr std::array<char, kHalfUuidHexLength> kHexDigits{
-      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd',
-      'e', 'f'};
+  constexpr std::array<char, kHalfUuidHexLength> kHexDigits{'0', '1', '2', '3', '4', '5', '6', '7',
+                                                            '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
   std::mt19937_64 rng(std::random_device{}());
   std::uniform_int_distribution<std::uint64_t> dist;
@@ -27,8 +26,7 @@ auto GenerateUuidLikeString() -> std::string {
   auto to_hex = [=](std::uint64_t value) {
     std::string out(kHalfUuidHexLength, '0');
     for (int i = kHalfUuidHexLength - 1; i >= 0; --i) {
-      out[static_cast<std::size_t>(i)] =
-          kHexDigits[value & kNibbleMask];
+      out[static_cast<std::size_t>(i)] = kHexDigits[value & kNibbleMask];
       value >>= kNibbleBits;
     }
     return out;
@@ -39,8 +37,7 @@ auto GenerateUuidLikeString() -> std::string {
 
 }  // namespace
 
-SimpleStore::SimpleStore(std::filesystem::path db_dir,
-                         meta::ManifestRecord manifest,
+SimpleStore::SimpleStore(std::filesystem::path db_dir, meta::ManifestRecord manifest,
                          meta::SuperBlock superblock, Pager pager)
     : db_dir_(std::move(db_dir)),
       manifest_store_(db_dir_),
@@ -97,8 +94,7 @@ auto SimpleStore::Get(const std::string& key) const -> std::optional<btree::Reco
   return tree_.Find(key);
 }
 
-void SimpleStore::AppendRecordPage(const std::string& key,
-                                   const btree::Record& record,
+void SimpleStore::AppendRecordPage(const std::string& key, const btree::Record& record,
                                    bool tombstone) {
   const auto payload = EncodeRecord(key, record, tombstone);
 
@@ -144,9 +140,8 @@ void SimpleStore::Sync() {
 
 auto SimpleStore::size() const noexcept -> std::uint64_t { return tree_.size(); }
 
-auto SimpleStore::EncodeRecord(const std::string& key,
-                                                 const btree::Record& record,
-                                                 bool tombstone) -> std::vector<std::byte> {
+auto SimpleStore::EncodeRecord(const std::string& key, const btree::Record& record, bool tombstone)
+    -> std::vector<std::byte> {
   const auto payload_size = pager_.payload_size();
   std::vector<std::byte> payload(payload_size, std::byte{0});
 
@@ -154,9 +149,7 @@ auto SimpleStore::EncodeRecord(const std::string& key,
   const auto ttl = record.metadata.ttl_epoch_seconds;
 
   std::size_t offset = 0;
-  auto write_u8 = [&](std::uint8_t value) {
-    payload[offset++] = static_cast<std::byte>(value);
-  };
+  auto write_u8 = [&](std::uint8_t value) { payload[offset++] = static_cast<std::byte>(value); };
   auto write_u32 = [&](std::uint32_t value) {
     if (offset + sizeof(std::uint32_t) > payload.size()) {
       throw std::runtime_error("Record does not fit in page payload");
@@ -219,17 +212,15 @@ auto SimpleStore::EncodeRecord(const std::string& key,
   return payload;
 }
 
-auto SimpleStore::DecodeRecord(
-    const std::vector<std::byte>& payload, bool& tombstone) -> std::optional<std::pair<std::string, btree::Record>> {
-  if (payload.size() < sizeof(std::uint8_t) + sizeof(std::uint8_t) +
-                           sizeof(std::uint64_t) + 2 * sizeof(std::uint32_t)) {
+auto SimpleStore::DecodeRecord(const std::vector<std::byte>& payload, bool& tombstone)
+    -> std::optional<std::pair<std::string, btree::Record>> {
+  if (payload.size() < sizeof(std::uint8_t) + sizeof(std::uint8_t) + sizeof(std::uint64_t) +
+                           2 * sizeof(std::uint32_t)) {
     return std::nullopt;
   }
 
   std::size_t offset = 0;
-  auto read_u8 = [&](std::uint8_t& out) {
-    out = static_cast<std::uint8_t>(payload[offset++]);
-  };
+  auto read_u8 = [&](std::uint8_t& out) { out = static_cast<std::uint8_t>(payload[offset++]); };
   auto read_u32 = [&](std::uint32_t& out) {
     std::memcpy(&out, payload.data() + offset, sizeof(std::uint32_t));
     offset += sizeof(std::uint32_t);
@@ -258,8 +249,7 @@ auto SimpleStore::DecodeRecord(
     return std::nullopt;
   }
 
-  std::string key(reinterpret_cast<const char*>(payload.data() + offset),
-                  key_len);
+  std::string key(reinterpret_cast<const char*>(payload.data() + offset), key_len);
   offset += key_len;
 
   btree::Record record{};
@@ -273,8 +263,7 @@ auto SimpleStore::DecodeRecord(
       break;
     }
     case btree::ValueType::kString: {
-      std::string value(reinterpret_cast<const char*>(payload.data() + offset),
-                        value_len);
+      std::string value(reinterpret_cast<const char*>(payload.data() + offset), value_len);
       record.value = std::move(value);
       break;
     }

@@ -18,8 +18,7 @@ class TransactionContext {
   [[nodiscard]] std::uint64_t id() const noexcept;
   [[nodiscard]] TransactionState state() const noexcept;
 
-  [[nodiscard]] std::optional<storage::btree::Record> Read(
-      const std::string& key) const;
+  [[nodiscard]] std::optional<storage::btree::Record> Read(const std::string& key) const;
   void Write(const std::string& key, storage::btree::Record record);
   void MarkCommitted();
   void MarkAborted();

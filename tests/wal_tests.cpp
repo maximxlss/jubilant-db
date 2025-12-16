@@ -1,9 +1,9 @@
+#include <gtest/gtest.h>
+
 #include <cstddef>
 #include <optional>
 #include <string>
 #include <vector>
-
-#include <gtest/gtest.h>
 
 #include "storage/wal/wal_manager.h"
 

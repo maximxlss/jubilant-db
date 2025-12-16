@@ -60,8 +60,7 @@ int HandleInit(std::string_view db_dir) {
   return EXIT_SUCCESS;
 }
 
-jubilant::storage::btree::Record BuildRecord(std::string_view type,
-                                            std::string_view value) {
+jubilant::storage::btree::Record BuildRecord(std::string_view type, std::string_view value) {
   jubilant::storage::btree::Record record{};
 
   if (type == "bytes") {
@@ -77,8 +76,8 @@ jubilant::storage::btree::Record BuildRecord(std::string_view type,
   return record;
 }
 
-int HandleSet(std::string_view db_dir, std::string_view key,
-              std::string_view type, std::string_view value) {
+int HandleSet(std::string_view db_dir, std::string_view key, std::string_view type,
+              std::string_view value) {
   auto store = jubilant::storage::SimpleStore::Open(db_dir);
   const auto record = BuildRecord(type, value);
   store.Set(std::string{key}, record);

@@ -4,8 +4,8 @@
 
 #include <filesystem>
 #include <fstream>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "disk_generated.h"
 
@@ -54,8 +54,7 @@ auto ManifestStore::Load() const -> std::optional<ManifestRecord> {
 
   const auto* const uuid_vec = manifest_fb->db_uuid();
   if (uuid_vec != nullptr) {
-    record.db_uuid.assign(reinterpret_cast<const char*>(uuid_vec->Data()),
-                          uuid_vec->size());
+    record.db_uuid.assign(reinterpret_cast<const char*>(uuid_vec->Data()), uuid_vec->size());
   }
 
   if (manifest_fb->wire_schema() != nullptr) {
@@ -79,8 +78,7 @@ auto ManifestStore::Load() const -> std::optional<ManifestRecord> {
   return record;
 }
 
-auto ManifestStore::Validate(const ManifestRecord& manifest)
-    -> ManifestValidationResult {
+auto ManifestStore::Validate(const ManifestRecord& manifest) -> ManifestValidationResult {
   ManifestValidationResult result{};
   result.ok = true;
 
@@ -90,8 +88,7 @@ auto ManifestStore::Validate(const ManifestRecord& manifest)
   } else if (manifest.page_size == 0) {
     result.ok = false;
     result.message = "page_size must be non-zero";
-  } else if (manifest.inline_threshold == 0 ||
-             manifest.inline_threshold >= manifest.page_size) {
+  } else if (manifest.inline_threshold == 0 || manifest.inline_threshold >= manifest.page_size) {
     result.ok = false;
     result.message = "inline_threshold must be within (0, page_size)";
   } else if (manifest.db_uuid.empty()) {
@@ -127,17 +124,15 @@ auto ManifestStore::Persist(const ManifestRecord& manifest) -> bool {
   flatbuffers::FlatBufferBuilder builder;
 
   const auto uuid_vec = builder.CreateVector(
-      reinterpret_cast<const uint8_t*>(manifest.db_uuid.data()),
-      manifest.db_uuid.size());
+      reinterpret_cast<const uint8_t*>(manifest.db_uuid.data()), manifest.db_uuid.size());
   const auto wire_schema = builder.CreateString(manifest.wire_schema);
   const auto disk_schema = builder.CreateString(manifest.disk_schema);
   const auto wal_schema = builder.CreateString(manifest.wal_schema);
   const auto hash_algorithm = builder.CreateString(manifest.hash_algorithm);
 
   const auto manifest_offset = disk::CreateManifest(
-      builder, manifest.format_major, manifest.format_minor,
-      manifest.page_size, manifest.inline_threshold, uuid_vec, wire_schema,
-      disk_schema, wal_schema, hash_algorithm);
+      builder, manifest.format_major, manifest.format_minor, manifest.page_size,
+      manifest.inline_threshold, uuid_vec, wire_schema, disk_schema, wal_schema, hash_algorithm);
 
   builder.FinishSizePrefixed(manifest_offset, disk::ManifestIdentifier());
 
@@ -146,8 +141,7 @@ auto ManifestStore::Persist(const ManifestRecord& manifest) -> bool {
     return false;
   }
 
-  out.write(reinterpret_cast<const char*>(builder.GetBufferPointer()),
-            builder.GetSize());
+  out.write(reinterpret_cast<const char*>(builder.GetBufferPointer()), builder.GetSize());
   out.flush();
   return out.good();
 }

@@ -20,8 +20,7 @@ struct Config {
 class ConfigLoader {
  public:
   [[nodiscard]] static Config Default(std::filesystem::path db_path);
-  [[nodiscard]] static std::optional<Config> LoadFromFile(
-      const std::filesystem::path& path);
+  [[nodiscard]] static std::optional<Config> LoadFromFile(const std::filesystem::path& path);
 };
 
 }  // namespace jubilant::config

@@ -2,12 +2,9 @@
 
 namespace jubilant::storage::checkpoint {
 
-void Checkpointer::RequestCheckpoint(wal::Lsn target_lsn) {
-  target_lsn_ = target_lsn;
-}
+void Checkpointer::RequestCheckpoint(wal::Lsn target_lsn) { target_lsn_ = target_lsn; }
 
-auto Checkpointer::RunOnce(
-    const FlushCallback& flush) -> std::optional<CheckpointSnapshot> {
+auto Checkpointer::RunOnce(const FlushCallback& flush) -> std::optional<CheckpointSnapshot> {
   if (!target_lsn_.has_value()) {
     return std::nullopt;
   }

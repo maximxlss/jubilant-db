@@ -1,9 +1,9 @@
+#include <gtest/gtest.h>
+
 #include <filesystem>
 #include <stdexcept>
 #include <string>
 #include <variant>
-
-#include <gtest/gtest.h>
 
 #include "storage/btree/btree.h"
 #include "storage/simple_store.h"
@@ -56,9 +56,7 @@ TEST(SimpleStoreTest, DeleteMissingKeyDoesNotWriteTombstone) {
 
   const auto data_file = dir / "data.pages";
   const auto initial_size =
-      std::filesystem::exists(data_file)
-          ? std::filesystem::file_size(data_file)
-          : 0u;
+      std::filesystem::exists(data_file) ? std::filesystem::file_size(data_file) : 0u;
 
   EXPECT_FALSE(store.Delete("absent"));
   store.Sync();

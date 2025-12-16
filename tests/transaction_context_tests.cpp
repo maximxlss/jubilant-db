@@ -1,7 +1,7 @@
+#include <gtest/gtest.h>
+
 #include <string>
 #include <variant>
-
-#include <gtest/gtest.h>
 
 #include "storage/btree/btree.h"
 #include "txn/transaction_context.h"

@@ -1,6 +1,6 @@
-#include <optional>
-
 #include <gtest/gtest.h>
+
+#include <optional>
 
 #include "storage/checkpoint/checkpointer.h"
 
@@ -12,8 +12,7 @@ TEST(CheckpointerTest, SkipsWhenNoCheckpointRequested) {
   Checkpointer checkpointer;
   bool flushed = false;
 
-  const auto snapshot =
-      checkpointer.RunOnce([&](Lsn) { flushed = true; });
+  const auto snapshot = checkpointer.RunOnce([&](Lsn) { flushed = true; });
 
   EXPECT_FALSE(snapshot.has_value());
   EXPECT_FALSE(flushed);
@@ -39,4 +38,3 @@ TEST(CheckpointerTest, RunsFlushCallbackAndResetsRequest) {
   EXPECT_FALSE(snapshot.has_value());
   EXPECT_FALSE(flushed);
 }
-

@@ -1,10 +1,10 @@
+#include <flatbuffers/flatbuffers.h>
+#include <gtest/gtest.h>
+
 #include <filesystem>
 #include <fstream>
 #include <string>
 #include <vector>
-
-#include <flatbuffers/flatbuffers.h>
-#include <gtest/gtest.h>
 
 #include "disk_generated.h"
 #include "meta/manifest.h"
@@ -64,8 +64,7 @@ TEST(ManifestStoreTest, LoadRejectsInvalidManifestOnDisk) {
 
   // Write an invalid manifest with format_major == 0 to disk.
   flatbuffers::FlatBufferBuilder builder;
-  const auto uuid_vec = builder.CreateVector(
-      reinterpret_cast<const uint8_t*>("bad-uuid"), 8);
+  const auto uuid_vec = builder.CreateVector(reinterpret_cast<const uint8_t*>("bad-uuid"), 8);
   const auto wire_schema = builder.CreateString("wire");
   const auto disk_schema = builder.CreateString("disk");
   const auto wal_schema = builder.CreateString("wal");
@@ -76,18 +75,15 @@ TEST(ManifestStoreTest, LoadRejectsInvalidManifestOnDisk) {
       /*format_major=*/0,
       /*format_minor=*/0,
       /*page_size=*/4096,
-      /*inline_threshold=*/1024,
-      uuid_vec, wire_schema, disk_schema, wal_schema, hash_algorithm);
+      /*inline_threshold=*/1024, uuid_vec, wire_schema, disk_schema, wal_schema, hash_algorithm);
 
-  builder.FinishSizePrefixed(manifest_offset,
-                             jubilant::disk::ManifestIdentifier());
+  builder.FinishSizePrefixed(manifest_offset, jubilant::disk::ManifestIdentifier());
 
   const auto manifest_path = dir / "MANIFEST";
   fs::create_directories(dir);
   std::ofstream out(manifest_path, std::ios::binary | std::ios::trunc);
   ASSERT_TRUE(out);
-  out.write(reinterpret_cast<const char*>(builder.GetBufferPointer()),
-            builder.GetSize());
+  out.write(reinterpret_cast<const char*>(builder.GetBufferPointer()), builder.GetSize());
   out.close();
 
   ManifestStore store{dir};

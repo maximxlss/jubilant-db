@@ -20,8 +20,7 @@ class Checkpointer {
   Checkpointer() = default;
 
   void RequestCheckpoint(wal::Lsn target_lsn);
-  [[nodiscard]] std::optional<CheckpointSnapshot> RunOnce(
-      const FlushCallback& flush);
+  [[nodiscard]] std::optional<CheckpointSnapshot> RunOnce(const FlushCallback& flush);
 
  private:
   std::optional<wal::Lsn> target_lsn_;

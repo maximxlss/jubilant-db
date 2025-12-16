@@ -1,10 +1,10 @@
+#include <gtest/gtest.h>
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
 #include <variant>
 #include <vector>
-
-#include <gtest/gtest.h>
 
 #include "storage/btree/btree.h"
 
@@ -41,8 +41,7 @@ TEST(BTreeTest, InsertOverwritesExistingKey) {
 
   const auto found = tree.Find("dup");
   ASSERT_TRUE(found.has_value());
-  EXPECT_EQ(std::get<std::vector<std::byte>>(found->value).front(),
-            std::byte{0xAA});
+  EXPECT_EQ(std::get<std::vector<std::byte>>(found->value).front(), std::byte{0xAA});
   EXPECT_EQ(found->metadata.ttl_epoch_seconds, 20u);
   EXPECT_EQ(tree.size(), 1u);
 }

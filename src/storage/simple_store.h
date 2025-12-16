@@ -18,8 +18,7 @@ class SimpleStore {
  public:
   static SimpleStore Open(const std::filesystem::path& db_dir);
 
-  [[nodiscard]] std::optional<btree::Record> Get(
-      const std::string& key) const;
+  [[nodiscard]] std::optional<btree::Record> Get(const std::string& key) const;
   void Set(const std::string& key, btree::Record record);
   bool Delete(const std::string& key);
 
@@ -32,12 +31,11 @@ class SimpleStore {
               meta::SuperBlock superblock, Pager pager);
 
   void LoadFromPages();
-  void AppendRecordPage(const std::string& key, const btree::Record& record,
-                        bool tombstone);
-  [[nodiscard]] std::vector<std::byte> EncodeRecord(
-      const std::string& key, const btree::Record& record, bool tombstone);
-  [[nodiscard]] static std::optional<std::pair<std::string, btree::Record>>
-  DecodeRecord(const std::vector<std::byte>& payload, bool& tombstone);
+  void AppendRecordPage(const std::string& key, const btree::Record& record, bool tombstone);
+  [[nodiscard]] std::vector<std::byte> EncodeRecord(const std::string& key,
+                                                    const btree::Record& record, bool tombstone);
+  [[nodiscard]] static std::optional<std::pair<std::string, btree::Record>> DecodeRecord(
+      const std::vector<std::byte>& payload, bool& tombstone);
 
   std::filesystem::path db_dir_;
   meta::ManifestStore manifest_store_;
@@ -49,4 +47,3 @@ class SimpleStore {
 };
 
 }  // namespace jubilant::storage
-

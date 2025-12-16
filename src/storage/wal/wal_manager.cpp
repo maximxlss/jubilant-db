@@ -4,8 +4,7 @@
 
 namespace jubilant::storage::wal {
 
-WalManager::WalManager(std::filesystem::path base_dir)
-    : wal_dir_(std::move(base_dir)) {}
+WalManager::WalManager(std::filesystem::path base_dir) : wal_dir_(std::move(base_dir)) {}
 
 auto WalManager::Append(const WalRecord& record) -> Lsn {
   const Lsn assigned = next_lsn_++;

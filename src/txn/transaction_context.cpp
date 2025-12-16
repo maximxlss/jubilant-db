@@ -4,15 +4,14 @@
 
 namespace jubilant::txn {
 
-TransactionContext::TransactionContext(std::uint64_t transaction_id)
-    : id_(transaction_id) {}
+TransactionContext::TransactionContext(std::uint64_t transaction_id) : id_(transaction_id) {}
 
 auto TransactionContext::id() const noexcept -> std::uint64_t { return id_; }
 
 auto TransactionContext::state() const noexcept -> TransactionState { return state_; }
 
-auto TransactionContext::Read(
-    const std::string& key) const -> std::optional<storage::btree::Record> {
+auto TransactionContext::Read(const std::string& key) const
+    -> std::optional<storage::btree::Record> {
   auto overlay_iter = overlay_.find(key);
   if (overlay_iter != overlay_.end()) {
     return overlay_iter->second;
@@ -20,8 +19,7 @@ auto TransactionContext::Read(
   return std::nullopt;
 }
 
-void TransactionContext::Write(const std::string& key,
-                               storage::btree::Record record) {
+void TransactionContext::Write(const std::string& key, storage::btree::Record record) {
   overlay_.insert_or_assign(key, std::move(record));
 }
 

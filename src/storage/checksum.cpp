@@ -48,4 +48,3 @@ auto ComputeCrc32(std::span<const std::byte> data) -> std::uint32_t {
 }
 
 }  // namespace jubilant::storage
-

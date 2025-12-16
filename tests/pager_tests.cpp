@@ -1,22 +1,20 @@
+#include <gtest/gtest.h>
+
 #include <filesystem>
 #include <stdexcept>
 #include <vector>
-
-#include <gtest/gtest.h>
 
 #include "storage/pager/pager.h"
 
 namespace fs = std::filesystem;
 
-using jubilant::storage::PageType;
-using jubilant::storage::Pager;
 using jubilant::storage::kDefaultPageSize;
+using jubilant::storage::Pager;
+using jubilant::storage::PageType;
 
 namespace {
 
-fs::path TestPageFile() {
-  return fs::temp_directory_path() / "jubilant-pager-tests.pages";
-}
+fs::path TestPageFile() { return fs::temp_directory_path() / "jubilant-pager-tests.pages"; }
 
 }  // namespace
 
