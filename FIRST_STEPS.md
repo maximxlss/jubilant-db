@@ -1,5 +1,11 @@
 ## v0.0.1 Skeleton Plan (updated, ready to execute)
 
+### Status snapshot
+
+* **Implemented:** In-memory B+Tree insert/find/delete, pager page IO and allocation skeleton, manifest/superblock stubs, and the `SimpleStore` wrapper that powers `jubectl init/set/get/del` with UTF-8 key validation and overwrite semantics.
+* **Tested:** Persistence and CRUD semantics for `SimpleStore`, B+Tree overwrite/delete behavior, pager read/write parity, manifest/superblock round-trips, WAL shell, lock manager basics, and transaction context overlays (`tests/*.cpp`). Run `cmake --preset dev-debug` followed by `ctest --preset dev-debug` to exercise coverage.
+* **Not yet covered:** WAL durability guarantees, crash recovery, concurrency, TTL enforcement, and value-log plumbing.
+
 ### Target outcome
 
 A tiny end-to-end local DB you can run via `jubectl`:
