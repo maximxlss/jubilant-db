@@ -38,4 +38,4 @@ struct WalRecord {
   std::optional<UpsertPayload> upsert;
 };
 
-}  // namespace jubilant::storage::wal
+} // namespace jubilant::storage::wal

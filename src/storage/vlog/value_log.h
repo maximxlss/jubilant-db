@@ -18,17 +18,16 @@ struct AppendResult {
 };
 
 class ValueLog {
- public:
+public:
   explicit ValueLog(std::filesystem::path base_dir);
 
   [[nodiscard]] AppendResult Append(const std::vector<std::byte>& data);
-  [[nodiscard]] std::optional<std::vector<std::byte>> Read(
-      const SegmentPointer& pointer) const;
+  [[nodiscard]] static std::optional<std::vector<std::byte>> Read(const SegmentPointer& pointer);
   void RunGcCycle();
 
- private:
+private:
   std::filesystem::path base_dir_;
   SegmentPointer next_pointer_{};
 };
 
-}  // namespace jubilant::storage::vlog
+} // namespace jubilant::storage::vlog

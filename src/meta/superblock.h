@@ -19,15 +19,15 @@ struct SuperBlock {
 };
 
 class SuperBlockStore {
- public:
-  explicit SuperBlockStore(std::filesystem::path base_dir);
+public:
+  explicit SuperBlockStore(const std::filesystem::path& base_dir);
 
   [[nodiscard]] std::optional<SuperBlock> LoadActive() const;
   bool WriteNext(const SuperBlock& superblock);
 
- private:
+private:
   std::filesystem::path path_a_;
   std::filesystem::path path_b_;
 };
 
-}  // namespace jubilant::meta
+} // namespace jubilant::meta

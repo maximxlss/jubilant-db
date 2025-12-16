@@ -1,5 +1,13 @@
-BasedOnStyle: Google
+BasedOnStyle: LLVM
 IndentWidth: 2
+TabWidth: 2
+UseTab: Never
 ColumnLimit: 100
-DerivePointerAlignment: false
+BreakBeforeBraces: Attach
+AllowShortFunctionsOnASingleLine: Empty
 PointerAlignment: Left
+IncludeBlocks: Regroup
+SortIncludes: true
+SpacesBeforeTrailingComments: 1
+NamespaceIndentation: None
+ReflowComments: true

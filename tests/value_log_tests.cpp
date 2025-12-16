@@ -1,9 +1,8 @@
-#include <cstddef>
-#include <vector>
-
-#include <gtest/gtest.h>
-
 #include "storage/vlog/value_log.h"
+
+#include <cstddef>
+#include <gtest/gtest.h>
+#include <vector>
 
 using jubilant::storage::vlog::AppendResult;
 using jubilant::storage::vlog::SegmentPointer;
@@ -18,11 +17,11 @@ TEST(ValueLogTest, AppendsReturnMonotonicPointers) {
   std::vector<std::byte> second(2, std::byte{0x02});
   const auto second_result = vlog.Append(second);
 
-  EXPECT_EQ(first_result.pointer.segment_id, 0u);
-  EXPECT_EQ(first_result.pointer.offset, 0u);
+  EXPECT_EQ(first_result.pointer.segment_id, 0U);
+  EXPECT_EQ(first_result.pointer.offset, 0U);
   EXPECT_EQ(first_result.length, first.size());
 
-  EXPECT_EQ(second_result.pointer.segment_id, 0u);
+  EXPECT_EQ(second_result.pointer.segment_id, 0U);
   EXPECT_EQ(second_result.pointer.offset, first.size());
   EXPECT_EQ(second_result.length, second.size());
 }

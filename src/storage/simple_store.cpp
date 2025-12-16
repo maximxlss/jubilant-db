@@ -29,17 +29,12 @@ std::string GenerateUuidLikeString() {
   return to_hex(dist(rng)) + to_hex(dist(rng));
 }
 
-}  // namespace
+} // namespace
 
-SimpleStore::SimpleStore(std::filesystem::path db_dir,
-                         meta::ManifestRecord manifest,
+SimpleStore::SimpleStore(std::filesystem::path db_dir, meta::ManifestRecord manifest,
                          meta::SuperBlock superblock, Pager pager)
-    : db_dir_(std::move(db_dir)),
-      manifest_store_(db_dir_),
-      superblock_store_(db_dir_),
-      manifest_(std::move(manifest)),
-      superblock_(std::move(superblock)),
-      pager_(std::move(pager)) {}
+    : db_dir_(std::move(db_dir)), manifest_store_(db_dir_), superblock_store_(db_dir_),
+      manifest_(std::move(manifest)), superblock_(superblock), pager_(std::move(pager)) {}
 
 SimpleStore SimpleStore::Open(const std::filesystem::path& db_dir) {
   std::filesystem::create_directories(db_dir);
@@ -47,7 +42,7 @@ SimpleStore SimpleStore::Open(const std::filesystem::path& db_dir) {
   meta::ManifestStore manifest_store(db_dir);
   auto manifest = manifest_store.Load();
   if (!manifest.has_value()) {
-    manifest = manifest_store.NewDefault(GenerateUuidLikeString());
+    manifest = meta::ManifestStore::NewDefault(GenerateUuidLikeString());
     if (!manifest_store.Persist(*manifest)) {
       throw std::runtime_error("Failed to persist manifest");
     }
@@ -89,8 +84,7 @@ std::optional<btree::Record> SimpleStore::Get(const std::string& key) const {
   return tree_.Find(key);
 }
 
-void SimpleStore::AppendRecordPage(const std::string& key,
-                                   const btree::Record& record,
+void SimpleStore::AppendRecordPage(const std::string& key, const btree::Record& record,
                                    bool tombstone) {
   const auto payload = EncodeRecord(key, record, tombstone);
 
@@ -134,11 +128,12 @@ void SimpleStore::Sync() {
   manifest_store_.Persist(manifest_);
 }
 
-std::uint64_t SimpleStore::size() const noexcept { return tree_.size(); }
+std::uint64_t SimpleStore::size() const noexcept {
+  return tree_.size();
+}
 
 std::vector<std::byte> SimpleStore::EncodeRecord(const std::string& key,
-                                                 const btree::Record& record,
-                                                 bool tombstone) {
+                                                 const btree::Record& record, bool tombstone) {
   const auto payload_size = pager_.payload_size();
   std::vector<std::byte> payload(payload_size, std::byte{0});
 
@@ -146,9 +141,7 @@ std::vector<std::byte> SimpleStore::EncodeRecord(const std::string& key,
   const auto ttl = record.metadata.ttl_epoch_seconds;
 
   std::size_t offset = 0;
-  auto write_u8 = [&](std::uint8_t value) {
-    payload[offset++] = static_cast<std::byte>(value);
-  };
+  auto write_u8 = [&](std::uint8_t value) { payload[offset++] = static_cast<std::byte>(value); };
   auto write_u32 = [&](std::uint32_t value) {
     if (offset + sizeof(std::uint32_t) > payload.size()) {
       throw std::runtime_error("Record does not fit in page payload");
@@ -211,17 +204,15 @@ std::vector<std::byte> SimpleStore::EncodeRecord(const std::string& key,
   return payload;
 }
 
-std::optional<std::pair<std::string, btree::Record>> SimpleStore::DecodeRecord(
-    const std::vector<std::byte>& payload, bool& tombstone) {
-  if (payload.size() < sizeof(std::uint8_t) + sizeof(std::uint8_t) +
-                           sizeof(std::uint64_t) + 2 * sizeof(std::uint32_t)) {
+std::optional<std::pair<std::string, btree::Record>>
+SimpleStore::DecodeRecord(const std::vector<std::byte>& payload, bool& tombstone) {
+  if (payload.size() < sizeof(std::uint8_t) + sizeof(std::uint8_t) + sizeof(std::uint64_t) +
+                           2 * sizeof(std::uint32_t)) {
     return std::nullopt;
   }
 
   std::size_t offset = 0;
-  auto read_u8 = [&](std::uint8_t& out) {
-    out = static_cast<std::uint8_t>(payload[offset++]);
-  };
+  auto read_u8 = [&](std::uint8_t& out) { out = static_cast<std::uint8_t>(payload[offset++]); };
   auto read_u32 = [&](std::uint32_t& out) {
     std::memcpy(&out, payload.data() + offset, sizeof(std::uint32_t));
     offset += sizeof(std::uint32_t);
@@ -250,37 +241,35 @@ std::optional<std::pair<std::string, btree::Record>> SimpleStore::DecodeRecord(
     return std::nullopt;
   }
 
-  std::string key(reinterpret_cast<const char*>(payload.data() + offset),
-                  key_len);
+  std::string key(reinterpret_cast<const char*>(payload.data() + offset), key_len);
   offset += key_len;
 
   btree::Record record{};
   record.metadata.ttl_epoch_seconds = ttl;
 
   switch (static_cast<btree::ValueType>(type_byte)) {
-    case btree::ValueType::kBytes: {
-      std::vector<std::byte> bytes(value_len);
-      std::memcpy(bytes.data(), payload.data() + offset, value_len);
-      record.value = std::move(bytes);
-      break;
-    }
-    case btree::ValueType::kString: {
-      std::string value(reinterpret_cast<const char*>(payload.data() + offset),
-                        value_len);
-      record.value = std::move(value);
-      break;
-    }
-    case btree::ValueType::kInt64: {
-      std::int64_t value{};
-      std::memcpy(&value, payload.data() + offset, sizeof(std::int64_t));
-      record.value = value;
-      break;
-    }
-    default:
-      return std::nullopt;
+  case btree::ValueType::kBytes: {
+    std::vector<std::byte> bytes(value_len);
+    std::memcpy(bytes.data(), payload.data() + offset, value_len);
+    record.value = std::move(bytes);
+    break;
+  }
+  case btree::ValueType::kString: {
+    std::string value(reinterpret_cast<const char*>(payload.data() + offset), value_len);
+    record.value = std::move(value);
+    break;
+  }
+  case btree::ValueType::kInt64: {
+    std::int64_t value{};
+    std::memcpy(&value, payload.data() + offset, sizeof(std::int64_t));
+    record.value = value;
+    break;
+  }
+  default:
+    return std::nullopt;
   }
 
   return std::make_pair(std::move(key), std::move(record));
 }
 
-}  // namespace jubilant::storage
+} // namespace jubilant::storage

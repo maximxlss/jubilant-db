@@ -6,8 +6,7 @@ void Checkpointer::RequestCheckpoint(wal::Lsn target_lsn) {
   target_lsn_ = target_lsn;
 }
 
-std::optional<CheckpointSnapshot> Checkpointer::RunOnce(
-    const FlushCallback& flush) {
+std::optional<CheckpointSnapshot> Checkpointer::RunOnce(const FlushCallback& flush) {
   if (!target_lsn_.has_value()) {
     return std::nullopt;
   }
@@ -25,4 +24,4 @@ std::optional<CheckpointSnapshot> Checkpointer::RunOnce(
   return snapshot;
 }
 
-}  // namespace jubilant::storage::checkpoint
+} // namespace jubilant::storage::checkpoint

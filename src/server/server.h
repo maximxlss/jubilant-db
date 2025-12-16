@@ -1,21 +1,21 @@
 #pragma once
 
-#include <atomic>
-#include <filesystem>
-#include <memory>
-#include <thread>
-#include <vector>
-
 #include "lock/lock_manager.h"
 #include "meta/manifest.h"
 #include "meta/superblock.h"
 #include "storage/btree/btree.h"
 #include "storage/wal/wal_manager.h"
 
+#include <atomic>
+#include <filesystem>
+#include <memory>
+#include <thread>
+#include <vector>
+
 namespace jubilant::server {
 
 class Server {
- public:
+public:
   Server(std::filesystem::path base_dir, std::size_t worker_count);
   ~Server();
 
@@ -24,7 +24,7 @@ class Server {
 
   [[nodiscard]] bool running() const noexcept;
 
- private:
+private:
   void WorkerLoop();
 
   std::filesystem::path base_dir_;
@@ -40,4 +40,4 @@ class Server {
   std::vector<std::thread> workers_;
 };
 
-}  // namespace jubilant::server
+} // namespace jubilant::server

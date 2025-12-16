@@ -19,6 +19,14 @@
       }
     },
     {
+      "name": "dev-debug-tidy",
+      "displayName": "Debug with clang-tidy",
+      "inherits": "dev-debug",
+      "cacheVariables": {
+        "JUBILANT_ENABLE_CLANG_TIDY": "ON"
+      }
+    },
+    {
       "name": "dev-release",
       "displayName": "Release development build",
       "description": "Configure a Release build with tests enabled for performance checks.",
@@ -29,6 +37,14 @@
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "JUBILANT_BUILD_TESTS": "ON"
       }
+    },
+    {
+      "name": "dev-release-tidy",
+      "displayName": "Release with clang-tidy",
+      "inherits": "dev-release",
+      "cacheVariables": {
+        "JUBILANT_ENABLE_CLANG_TIDY": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -38,9 +54,19 @@
       "configurePreset": "dev-debug"
     },
     {
+      "name": "dev-debug-tidy",
+      "displayName": "Build Debug with clang-tidy",
+      "configurePreset": "dev-debug-tidy"
+    },
+    {
       "name": "dev-release",
       "displayName": "Build Release",
       "configurePreset": "dev-release"
+    },
+    {
+      "name": "dev-release-tidy",
+      "displayName": "Build Release with clang-tidy",
+      "configurePreset": "dev-release-tidy"
     },
     {
       "name": "dev-debug-tests",
@@ -69,9 +95,25 @@
       }
     },
     {
+      "name": "dev-debug-tidy",
+      "displayName": "Test Debug with clang-tidy",
+      "configurePreset": "dev-debug-tidy",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
       "name": "dev-release",
       "displayName": "Test Release",
       "configurePreset": "dev-release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "dev-release-tidy",
+      "displayName": "Test Release with clang-tidy",
+      "configurePreset": "dev-release-tidy",
       "output": {
         "outputOnFailure": true
       }
