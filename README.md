@@ -50,6 +50,31 @@ Active scaffolding modules are wired into the build so they can evolve increment
 
 Every component should favor small, testable interfaces so that future work can proceed in a TDD-friendly manner.
 
+## CMake presets for development
+
+The repository ships with CMake presets to keep day-to-day workflows short and reproducible (requires CMake 3.25+ and Ninja):
+
+* Configure a Debug tree with tests enabled and compile commands exported:
+
+  ```sh
+  cmake --preset dev-debug
+  ```
+
+* Build either everything or just the tests for the configured tree:
+
+  ```sh
+  cmake --build --preset dev-debug
+  cmake --build --preset dev-debug-tests
+  ```
+
+* Run the unit test suite (ctest uses the configured Debug tree automatically):
+
+  ```sh
+  ctest --preset dev-debug
+  ```
+
+Release-tuned variants are available via the `dev-release` presets when you want to check optimizer-sensitive behavior.
+
 ## License
 
 Jubilant DB is available under the [MIT License](LICENSE), encouraging reuse and contribution without restrictive terms.

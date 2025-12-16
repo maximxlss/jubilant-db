@@ -1,0 +1,80 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "dev-debug",
+      "displayName": "Debug development build",
+      "description": "Configure a Debug build with tests enabled and compile commands exported.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/dev-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "JUBILANT_BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "dev-release",
+      "displayName": "Release development build",
+      "description": "Configure a Release build with tests enabled for performance checks.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/dev-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "JUBILANT_BUILD_TESTS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "dev-debug",
+      "displayName": "Build Debug",
+      "configurePreset": "dev-debug"
+    },
+    {
+      "name": "dev-release",
+      "displayName": "Build Release",
+      "configurePreset": "dev-release"
+    },
+    {
+      "name": "dev-debug-tests",
+      "displayName": "Build Debug tests",
+      "configurePreset": "dev-debug",
+      "targets": [
+        "unit_tests"
+      ]
+    },
+    {
+      "name": "dev-release-tests",
+      "displayName": "Build Release tests",
+      "configurePreset": "dev-release",
+      "targets": [
+        "unit_tests"
+      ]
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "dev-debug",
+      "displayName": "Test Debug",
+      "configurePreset": "dev-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "dev-release",
+      "displayName": "Test Release",
+      "configurePreset": "dev-release",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}
