@@ -22,12 +22,14 @@ public:
   explicit ValueLog(std::filesystem::path base_dir);
 
   [[nodiscard]] AppendResult Append(const std::vector<std::byte>& data);
-  [[nodiscard]] static std::optional<std::vector<std::byte>> Read(const SegmentPointer& pointer);
+  [[nodiscard]] std::optional<std::vector<std::byte>> Read(const SegmentPointer& pointer) const;
   void RunGcCycle();
 
 private:
   std::filesystem::path base_dir_;
   SegmentPointer next_pointer_{};
+
+  [[nodiscard]] std::filesystem::path SegmentPath(std::uint32_t segment_id) const;
 };
 
 } // namespace jubilant::storage::vlog

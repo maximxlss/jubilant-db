@@ -1,6 +1,7 @@
 #include "storage/pager/pager.h"
 
 #include <filesystem>
+#include <fstream>
 #include <gtest/gtest.h>
 #include <stdexcept>
 #include <vector>
@@ -64,4 +65,27 @@ TEST(PagerTest, RejectsInvalidPageSize) {
   bad.payload.resize(10);
 
   EXPECT_THROW(pager.Write(bad), std::invalid_argument);
+}
+
+TEST(PagerTest, DetectsChecksumMismatch) {
+  fs::remove(TestPageFile());
+  auto pager = Pager::Open(TestPageFile(), kDefaultPageSize);
+  const auto page_id = pager.Allocate(PageType::kLeaf);
+
+  std::vector<std::byte> payload(pager.payload_size());
+  payload[0] = std::byte{0x11};
+
+  jubilant::storage::Page page{};
+  page.id = page_id;
+  page.type = PageType::kLeaf;
+  page.payload = payload;
+  pager.Write(page);
+  pager.Sync();
+
+  std::fstream corrupt(TestPageFile(), std::ios::in | std::ios::out | std::ios::binary);
+  corrupt.seekp(static_cast<std::streamoff>(sizeof(std::uint64_t) + sizeof(std::uint64_t) + sizeof(std::uint16_t)));
+  corrupt.put(static_cast<char>(0xFF));
+  corrupt.flush();
+
+  EXPECT_THROW(pager.Read(page_id), std::runtime_error);
 }

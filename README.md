@@ -41,7 +41,7 @@ Linting-friendly presets exist (`dev-debug-tidy`), and `clang-format`/`clang-tid
 Short-term steps beyond v0.0.1:
 
 1. **Storage durability sweep:** Persist manifest generations, dual superblocks with CRC selection, and a write-ahead log replayed at startup.
-2. **B+Tree + pager completeness:** Finish page allocation and on-disk B+Tree layout, enforce page-level checksums, and plumb inline/value-log routing.
+2. **B+Tree + pager completeness (landed):** Page allocation now writes chained leaf pages with CRC-guarded headers, and large values flow through the value log while small values stay inline.
 3. **CLI and validation growth:** Extend `jubectl` with stats and validation commands, wired into the manifest/superblock metadata and storage checkpoints.
 
 For a longer-horizon view, see [`FUTURE_UPDATES.md`](FUTURE_UPDATES.md).

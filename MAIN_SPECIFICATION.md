@@ -229,17 +229,19 @@ On update:
   * page id
   * page type
   * page LSN (or “page_last_applied_lsn”)
-  * CRC checksum over the page
+  * CRC checksum over the page (header with zeroed CRC + payload)
 
 B+Tree structure:
 
 * Internal pages: separator keys + child page ids.
-* Leaf pages: key bytes → value reference + metadata (incl. TTL/flags/revision).
+* Leaf pages: key bytes → value reference + metadata (incl. TTL/flags/revision). Leaf headers include entry counts and next-leaf
+  pointers to support sequential scans.
 
 ### 6.5 Hybrid value storage
 
 * If encoded value size ≤ inline threshold → stored inline in leaf record.
-* Else stored in value log; leaf stores pointer `{segment_id, offset, length}` plus checksum/hash if desired (optional; page CRC already exists).
+* Else stored in value log; leaf stores pointer `{segment_id, offset, length}` (and value type) plus checksum/hash if desired
+  (optional; page CRC already exists).
 
 ### 6.6 Value log
 

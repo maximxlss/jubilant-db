@@ -4,6 +4,7 @@
 #include "meta/superblock.h"
 #include "storage/btree/btree.h"
 #include "storage/pager/pager.h"
+#include "storage/vlog/value_log.h"
 
 #include <filesystem>
 #include <optional>
@@ -11,9 +12,6 @@
 
 namespace jubilant::storage {
 
-// A minimal durable key-value store for v0.0.1. Records are appended as pages
-// in the pager; the in-memory B-Tree facade provides overwrite + tombstone
-// semantics without a full on-disk tree layout yet.
 class SimpleStore {
 public:
   static SimpleStore Open(const std::filesystem::path& db_dir);
@@ -28,14 +26,9 @@ public:
 
 private:
   SimpleStore(std::filesystem::path db_dir, meta::ManifestRecord manifest,
-              meta::SuperBlock superblock, Pager pager);
+              meta::SuperBlock superblock, Pager pager, vlog::ValueLog value_log);
 
-  void LoadFromPages();
-  void AppendRecordPage(const std::string& key, const btree::Record& record, bool tombstone);
-  [[nodiscard]] std::vector<std::byte> EncodeRecord(const std::string& key,
-                                                    const btree::Record& record, bool tombstone);
-  [[nodiscard]] static std::optional<std::pair<std::string, btree::Record>>
-  DecodeRecord(const std::vector<std::byte>& payload, bool& tombstone);
+  void RefreshRoot();
 
   std::filesystem::path db_dir_;
   meta::ManifestStore manifest_store_;
@@ -43,6 +36,7 @@ private:
   meta::ManifestRecord manifest_;
   meta::SuperBlock superblock_;
   Pager pager_;
+  vlog::ValueLog value_log_;
   btree::BTree tree_;
 };
 

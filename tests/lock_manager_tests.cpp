@@ -1,9 +1,12 @@
 #include "lock/lock_manager.h"
 #include "storage/btree/btree.h"
+#include "storage/pager/pager.h"
+#include "storage/vlog/value_log.h"
 
 #include <atomic>
 #include <barrier>
 #include <chrono>
+#include <filesystem>
 #include <future>
 #include <gtest/gtest.h>
 #include <string>
@@ -12,8 +15,20 @@
 
 using jubilant::lock::LockManager;
 using jubilant::lock::LockMode;
+using jubilant::storage::Pager;
 using jubilant::storage::btree::BTree;
 using jubilant::storage::btree::Record;
+using jubilant::storage::vlog::ValueLog;
+
+namespace {
+
+std::filesystem::path TempDir(const std::string& name) {
+  const auto dir = std::filesystem::temp_directory_path() / name;
+  std::filesystem::remove_all(dir);
+  return dir;
+}
+
+} // namespace
 
 TEST(LockManagerTest, AllowsConcurrentSharedAccess) {
   LockManager manager;
@@ -86,7 +101,10 @@ TEST(LockManagerTest, ExclusiveBlocksSharedAccess) {
 
 TEST(LockManagerTest, SerializesConcurrentUpdatesAcrossRequests) {
   LockManager manager;
-  BTree tree;
+  const auto dir = TempDir("jubilant-lock-manager");
+  Pager pager = Pager::Open(dir / "data.pages", jubilant::storage::kDefaultPageSize);
+  ValueLog vlog(dir / "vlog");
+  BTree tree(BTree::Config{.pager = &pager, .value_log = &vlog, .inline_threshold = 128U, .root_hint = 0});
   const std::string key = "counter";
 
   Record initial_record{};

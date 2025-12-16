@@ -102,7 +102,8 @@ void Pager::Write(const Page& page) {
   PageHeader header{};
   header.id = page.id;
   header.type = static_cast<std::uint16_t>(page.type);
-  header.crc = ComputeCrc(page.payload);
+  header.lsn = page.lsn;
+  header.crc = ComputeCrc(header, page.payload);
 
   std::memcpy(buffer.data(), &header, sizeof(PageHeader));
   std::memcpy(buffer.data() + sizeof(PageHeader), page.payload.data(), payload_size_);
@@ -155,8 +156,14 @@ std::uint64_t Pager::OffsetFor(std::uint64_t page_id) const {
   return page_id * static_cast<std::uint64_t>(page_size_);
 }
 
-std::uint32_t Pager::ComputeCrc(const std::vector<std::byte>& payload) {
-  return ComputeCrc32(std::span<const std::byte>(payload.data(), payload.size()));
+std::uint32_t Pager::ComputeCrc(const PageHeader& header, const std::vector<std::byte>& payload) {
+  PageHeader header_copy = header;
+  header_copy.crc = 0;
+
+  std::vector<std::byte> crc_buffer(sizeof(PageHeader) + payload.size());
+  std::memcpy(crc_buffer.data(), &header_copy, sizeof(PageHeader));
+  std::memcpy(crc_buffer.data() + sizeof(PageHeader), payload.data(), payload.size());
+  return ComputeCrc32(std::span<const std::byte>(crc_buffer.data(), crc_buffer.size()));
 }
 
 Page Pager::ParsePage(const std::vector<std::byte>& buffer, std::uint32_t payload_size) {
@@ -169,13 +176,14 @@ Page Pager::ParsePage(const std::vector<std::byte>& buffer, std::uint32_t payloa
   std::vector<std::byte> payload(payload_size);
   std::memcpy(payload.data(), buffer.data() + sizeof(PageHeader), payload_size);
 
-  if (ComputeCrc(payload) != header.crc) {
+  if (ComputeCrc(header, payload) != header.crc) {
     throw std::runtime_error("Page checksum mismatch");
   }
 
   Page page{};
   page.id = header.id;
   page.type = static_cast<PageType>(header.type);
+  page.lsn = header.lsn;
   page.payload = std::move(payload);
   return page;
 }
