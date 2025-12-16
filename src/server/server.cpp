@@ -1,6 +1,6 @@
 #include "server/server.h"
 
-#include <thread>
+#include <string>
 #include <utility>
 
 namespace jubilant::server {
@@ -19,7 +19,15 @@ void Server::Start() {
   }
 
   for (std::size_t i = 0; i < worker_count_; ++i) {
-    workers_.emplace_back([this]() { WorkerLoop(); });
+    auto on_complete = [this](TransactionResult result) {
+      std::scoped_lock guard(results_mutex_);
+      completed_transactions_.push_back(std::move(result));
+    };
+
+    auto worker = std::make_unique<Worker>("worker-" + std::to_string(i), receiver_, lock_manager_,
+                                           btree_, btree_mutex_, on_complete);
+    worker->Start();
+    workers_.push_back(std::move(worker));
   }
 }
 
@@ -28,24 +36,34 @@ void Server::Stop() {
     return;
   }
 
+  receiver_.Stop();
+
   for (auto& worker : workers_) {
-    if (worker.joinable()) {
-      worker.join();
-    }
+    worker->Stop();
   }
   workers_.clear();
 }
 
-bool Server::running() const noexcept {
-  return running_.load();
+bool Server::SubmitTransaction(txn::TransactionRequest request) {
+  if (!running()) {
+    return false;
+  }
+  if (!request.Valid()) {
+    return false;
+  }
+
+  return receiver_.Enqueue(std::move(request));
 }
 
-void Server::WorkerLoop() {
-  // Request dispatch will be wired up after the wire protocol lands. Keeping a
-  // live worker loop in place helps exercise lifecycle management in tests.
-  while (running_.load()) {
-    std::this_thread::yield();
-  }
+std::vector<TransactionResult> Server::DrainCompleted() {
+  std::scoped_lock guard(results_mutex_);
+  auto drained = std::move(completed_transactions_);
+  completed_transactions_.clear();
+  return drained;
+}
+
+bool Server::running() const noexcept {
+  return running_.load();
 }
 
 } // namespace jubilant::server

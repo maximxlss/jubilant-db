@@ -12,6 +12,7 @@ Jubilant DB is a single-node, hybrid memory+disk key–value store. It targets a
 * **Docs:** A curated index lives in [`docs/README.md`](docs/README.md); product and technical specs remain in `MAIN_SPECIFICATION.md` and `TECH_SPECIFICATION.md`.
 * **Current milestone (v0.0.1):** `jubectl init/set/get/del` flows are implemented through `SimpleStore` with UTF-8 key validation, overwrite semantics, and persistence across clean restarts. Coverage comes from unit tests for the B+Tree, pager, manifest/superblock skeleton, and the CLI-facing store wrapper. See [`FIRST_STEPS.md`](FIRST_STEPS.md) for acceptance criteria and the tests under `tests/` for evidence.
 * **Build + test quickly:** Configure with `cmake --preset dev-debug`, build via `cmake --build --preset dev-debug`, and run `ctest --preset dev-debug`.
+* **Server runtime scaffolding:** A bounded transaction receiver, worker pool, and completion queue live under `src/server/` so wire-protocol work can focus on dispatch without reworking lifecycle management. See [`docs/server-runtime.md`](docs/server-runtime.md).
 
 ## CLI quickstart
 

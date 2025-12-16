@@ -90,6 +90,8 @@ add_library(jubildb
   src/meta/manifest.cpp
   src/meta/superblock.cpp
   src/server/server.cpp
+  src/server/transaction_receiver.cpp
+  src/server/worker.cpp
   src/storage/btree/btree.cpp
   src/storage/checksum.cpp
   src/storage/checkpoint/checkpointer.cpp
@@ -97,6 +99,7 @@ add_library(jubildb
   src/storage/simple_store.cpp
   src/storage/vlog/value_log.cpp
   src/storage/wal/wal_manager.cpp
+  src/txn/transaction_request.cpp
   src/txn/transaction_context.cpp
 )
 
@@ -148,6 +151,7 @@ if(JUBILANT_BUILD_TESTS)
     tests/manifest_tests.cpp
     tests/pager_tests.cpp
     tests/simple_store_tests.cpp
+    tests/server_worker_tests.cpp
     tests/transaction_context_tests.cpp
     tests/value_log_tests.cpp
     tests/wal_tests.cpp
