@@ -1,6 +1,6 @@
 # Jubilant DB
 
-[![CI](https://github.com/jubilant-db/jubilant-db/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
+[![CI](https://github.com/maximxlss/jubilant-db/actions/workflows/ci.yml/badge.svg)](https://github.com/maximxlss/jubilant-db/actions/workflows/ci.yml)
 [![CMake Presets](https://img.shields.io/badge/build-CMake%20presets-blue)](CMakePresets.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Status: Active Scaffolding](https://img.shields.io/badge/status-active%20scaffolding-orange)](MAIN_SPECIFICATION.md)
