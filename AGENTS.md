@@ -8,3 +8,7 @@
 - Developer build instructions live in `CONTRIBUTING.md`; user-facing build guidance is in `README.md`.
 - For new features or significant changes, consider updating `MAIN_SPECIFICATION.md` and `TECH_SPECIFICATION.md` to reflect the intended design.
 - DO NOT, I repeat DO NOT write incomplete, untested, incorrect, or one you are unsure about code and documentataion. Always strive for correctness and completeness in your contributions. Report to the user if you are unsure about any part of the task. Report to the user if you find any ambiguities or contradictions in the provided information. Report to the user if you have failed to deliver correct and complete code or documentation.
+
+# ExecPlans
+ 
+When writing complex features or significant refactors, use an ExecPlan (as described in .agent/PLANS.md) from design to implementation.
