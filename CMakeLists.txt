@@ -130,6 +130,7 @@ if(JUBILANT_BUILD_TESTS)
   set(JUBILANT_TEST_SOURCES
     tests/btree_tests.cpp
     tests/checkpoint_tests.cpp
+    tests/lock_manager_tests.cpp
     tests/manifest_tests.cpp
     tests/pager_tests.cpp
     tests/simple_store_tests.cpp

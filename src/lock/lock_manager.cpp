@@ -12,6 +12,7 @@ void LockManager::Acquire(const std::string& key, LockMode mode) {
 }
 
 void LockManager::Release(const std::string& key, LockMode mode) {
+  std::scoped_lock guard(map_mutex_);
   auto it = mutexes_.find(key);
   if (it == mutexes_.end()) {
     return;
