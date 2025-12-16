@@ -141,9 +141,10 @@ bool ManifestStore::Persist(ManifestRecord& manifest) {
   const auto wal_schema = builder.CreateString(manifest.wal_schema);
   const auto hash_algorithm = builder.CreateString(manifest.hash_algorithm);
 
-  const auto manifest_offset = disk::CreateManifest(
-      builder, manifest.generation, manifest.format_major, manifest.format_minor, manifest.page_size,
-      manifest.inline_threshold, uuid_vec, wire_schema, disk_schema, wal_schema, hash_algorithm);
+  const auto manifest_offset =
+      disk::CreateManifest(builder, manifest.generation, manifest.format_major,
+                           manifest.format_minor, manifest.page_size, manifest.inline_threshold,
+                           uuid_vec, wire_schema, disk_schema, wal_schema, hash_algorithm);
 
   builder.FinishSizePrefixed(manifest_offset, disk::ManifestIdentifier());
 

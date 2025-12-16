@@ -4,7 +4,6 @@
 #include "wal_generated.h"
 
 #include <flatbuffers/verifier.h>
-
 #include <utility>
 
 namespace wal_fb = ::jubilant::wal;
@@ -182,25 +181,27 @@ bool WalManager::PersistRecord(const WalRecord& record) {
   case RecordType::kUpsert: {
     if (record.upsert.has_value()) {
       const auto& upsert = record.upsert.value();
-      const auto key_vec = builder.CreateVector(
-          reinterpret_cast<const uint8_t*>(upsert.key.data()), upsert.key.size());
+      const auto key_vec = builder.CreateVector(reinterpret_cast<const uint8_t*>(upsert.key.data()),
+                                                upsert.key.size());
       const auto value_vec = builder.CreateVector(
           reinterpret_cast<const uint8_t*>(upsert.value.data()), upsert.value.size());
       flatbuffers::Offset<wal_fb::ValuePointer> value_ptr_offset{};
       if (upsert.value_ptr.has_value()) {
         const auto& ptr = upsert.value_ptr.value();
-        value_ptr_offset = wal_fb::CreateValuePointer(builder, ptr.segment_id, ptr.offset, ptr.length);
+        value_ptr_offset =
+            wal_fb::CreateValuePointer(builder, ptr.segment_id, ptr.offset, ptr.length);
       }
-      upsert_offset = wal_fb::CreateUpsert(builder, record.txn_id, key_vec,
-                                           wal_fb::ValueKind::Bytes, value_vec, value_ptr_offset,
-                                           upsert.ttl_epoch_seconds);
+      upsert_offset =
+          wal_fb::CreateUpsert(builder, record.txn_id, key_vec, wal_fb::ValueKind::Bytes, value_vec,
+                               value_ptr_offset, upsert.ttl_epoch_seconds);
     }
     break;
   }
   case RecordType::kTombstone: {
     if (record.tombstone_key.has_value()) {
-      const auto key_vec = builder.CreateVector(
-          reinterpret_cast<const uint8_t*>(record.tombstone_key->data()), record.tombstone_key->size());
+      const auto key_vec =
+          builder.CreateVector(reinterpret_cast<const uint8_t*>(record.tombstone_key->data()),
+                               record.tombstone_key->size());
       tombstone_offset = wal_fb::CreateTombstone(builder, record.txn_id, key_vec);
     }
     break;
@@ -215,9 +216,9 @@ bool WalManager::PersistRecord(const WalRecord& record) {
   }
 
   const auto crc = ComputeRecordCrc(record);
-  const auto wal_offset = wal_fb::CreateWalRecord(builder, static_cast<wal_fb::RecordType>(record.type),
-                                                  record.lsn, upsert_offset, tombstone_offset,
-                                                  marker_offset, crc);
+  const auto wal_offset =
+      wal_fb::CreateWalRecord(builder, static_cast<wal_fb::RecordType>(record.type), record.lsn,
+                              upsert_offset, tombstone_offset, marker_offset, crc);
   builder.Finish(wal_offset, wal_fb::WalRecordIdentifier());
 
   const auto buffer_pointer = builder.GetBufferPointer();
@@ -230,7 +231,8 @@ bool WalManager::PersistRecord(const WalRecord& record) {
 
   const auto size = static_cast<std::uint32_t>(buffer_size);
   out.write(reinterpret_cast<const char*>(&size), sizeof(size));
-  out.write(reinterpret_cast<const char*>(buffer_pointer), static_cast<std::streamsize>(buffer_size));
+  out.write(reinterpret_cast<const char*>(buffer_pointer),
+            static_cast<std::streamsize>(buffer_size));
   out.flush();
   return out.good();
 }

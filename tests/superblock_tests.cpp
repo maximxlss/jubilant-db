@@ -68,4 +68,3 @@ TEST(SuperBlockStoreTest, FallsBackWhenNewerCrcCorrupted) {
   EXPECT_EQ(active->generation, 1U);
   EXPECT_EQ(active->root_page_id, 10U);
 }
-
