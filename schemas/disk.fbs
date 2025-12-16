@@ -1,0 +1,27 @@
+namespace jubilant.disk;
+
+file_identifier "JBDK";
+
+// Minimal disk schema scaffolding for v0.0.1 bring-up.
+// Additional fields can be appended in-place without breaking compatibility.
+
+table Manifest {
+  format_major:ushort;
+  format_minor:ushort;
+  page_size:uint;
+  inline_threshold:uint;
+  db_uuid:[ubyte];
+  wire_schema:string;
+  disk_schema:string;
+  wal_schema:string;
+  hash_algorithm:string;
+}
+
+table SuperBlock {
+  generation:ulong;
+  root_page_id:ulong;
+  crc:ulong;
+  reserved:[ubyte];
+}
+
+root_type Manifest;
