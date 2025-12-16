@@ -12,3 +12,11 @@
 # ExecPlans
  
 When writing complex features or significant refactors, use an ExecPlan (as described in .agent/PLANS.md) from design to implementation.
+
+## Commit guidelines (Conventional Commits)
+
+Required format:
+
+* `feat:`, `fix:`, `perf:`, `refactor:`, `docs:`, `test:`, `build:`, `ci:`, `chore:`
+* Breaking change uses `!` + footer.
+
