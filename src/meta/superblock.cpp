@@ -76,6 +76,10 @@ bool SuperBlockStore::WriteNext(const SuperBlock& superblock) {
   const bool write_to_a = (next_generation % 2) == 1;
   const auto& target = write_to_a ? path_a_ : path_b_;
 
+  if (!target.parent_path().empty()) {
+    std::filesystem::create_directories(target.parent_path());
+  }
+
   std::ofstream out(target, std::ios::binary | std::ios::trunc);
   if (!out) {
     return false;

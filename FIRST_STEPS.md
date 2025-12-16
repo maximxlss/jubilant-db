@@ -2,9 +2,9 @@
 
 ### Status snapshot
 
-* **Implemented:** In-memory B+Tree insert/find/delete, pager page IO and allocation skeleton, manifest/superblock stubs, and the `SimpleStore` wrapper that powers `jubectl init/set/get/del` with UTF-8 key validation and overwrite semantics.
-* **Tested:** Persistence and CRUD semantics for `SimpleStore`, B+Tree overwrite/delete behavior, pager read/write parity, manifest/superblock round-trips, WAL shell, lock manager basics, and transaction context overlays (`tests/*.cpp`). Run `cmake --preset dev-debug` followed by `ctest --preset dev-debug` to exercise coverage.
-* **Not yet covered:** WAL durability guarantees, crash recovery, concurrency, TTL enforcement, and value-log plumbing.
+* **Implemented:** In-memory B+Tree insert/find/delete, pager page IO and allocation skeleton, manifest generations with disk persistence, dual superblocks with CRC selection, a WAL manager that replays recorded operations on startup, and the `SimpleStore` wrapper that powers `jubectl init/set/get/del` with UTF-8 key validation and overwrite semantics.
+* **Tested:** Persistence and CRUD semantics for `SimpleStore`, B+Tree overwrite/delete behavior, pager read/write parity, manifest generation bumps, superblock selection under CRC corruption, WAL disk replay, lock manager basics, and transaction context overlays (`tests/*.cpp`). Run `cmake --preset dev-debug` followed by `ctest --preset dev-debug` to exercise coverage.
+* **Not yet covered:** Crash recovery beyond WAL replay, concurrency, TTL enforcement, and value-log plumbing.
 
 ### Target outcome
 

@@ -192,6 +192,7 @@ Database directory contains:
 
 Contains:
 
+* generation (monotonic on rewrite to reject stale manifests)
 * format major/minor version
 * schema version identifiers (wire/wal/disk schema hashes or version numbers)
 * DB UUID
@@ -220,6 +221,8 @@ On update:
 * On open:
 
   * read both, pick the highest generation with valid CRC.
+
+* WAL files are replayed on startup before new operations are accepted.
 
 ### 6.4 Page file: `data.pages`
 

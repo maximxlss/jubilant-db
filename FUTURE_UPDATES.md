@@ -3,9 +3,9 @@
 This roadmap broadens the coverage across storage, transactions, durability, protocol, and tooling so every unfinished element in the specs has a landing zone.
 
 1. **Durability + recovery (MANIFEST, superblock, WAL, checkpoints)**
-   * Persist MANIFEST with size-prefix + file identifier and fsync; introduce a monotonic manifest generation to reject stale loads.
-   * Dual-superblock rotation with CRC validation and generation bumps on every checkpoint; reject mixed generations on open per spec.
-   * Implement WAL append/flush with size-prefixed FlatBuffers, CRC checks, and segment roll-over; expose durable LSN after fsync.
+   * Harden MANIFEST persistence with fsync and keep the monotonic manifest generation that rejects stale loads.
+   * Extend the dual-superblock rotation (generation + CRC already in place) to bump on every checkpoint and reject mixed generations on open per spec.
+   * Implement WAL segment roll-over and durable fsync checkpoints on top of the existing size-prefixed FlatBuffers + CRC verification; expose durable LSN after fsync.
    * Wire Checkpointer to flush dirty pages, cut a checkpoint LSN into the superblock, and prune WAL segments that are fully checkpointed.
    * Add crash-recovery sequencing: MANIFEST -> superblock select -> WAL redo -> checkpoint replay -> value-log reconciliation.
 

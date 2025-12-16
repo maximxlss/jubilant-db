@@ -69,6 +69,10 @@ Recommended layout:
 
 * **FetchContent** for small, version-pinned deps
 * No global/system dependency assumptions
+* Third-party libraries pinned in CMake:
+  * **FlatBuffers v24.3.25** (schemas + codegen)
+  * **GoogleTest v1.14.0** (unit tests)
+  * **toml++ v3.4.0** (TOML configuration loader)
 
 ---
 

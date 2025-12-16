@@ -39,6 +39,7 @@ TEST(ManifestStoreTest, PersistsAndLoadsValidManifest) {
     return;
   }
   const auto& loaded_manifest = loaded.value();
+  EXPECT_EQ(loaded_manifest.generation, 1U);
   EXPECT_EQ(loaded_manifest.db_uuid, "uuid-123");
   EXPECT_EQ(loaded_manifest.page_size, 8192U);
   EXPECT_EQ(loaded_manifest.inline_threshold, 512U);
@@ -62,6 +63,23 @@ TEST(ManifestStoreTest, RejectsInvalidManifestValues) {
   EXPECT_FALSE(store.Persist(manifest));
 }
 
+TEST(ManifestStoreTest, BumpsGenerationOnRewrite) {
+  const auto dir = TempDir("jubilant-manifest-generations");
+  ManifestStore store{dir};
+
+  auto manifest = jubilant::meta::ManifestStore::NewDefault("uuid-gen");
+  ASSERT_TRUE(store.Persist(manifest));
+  EXPECT_EQ(manifest.generation, 1U);
+
+  manifest.inline_threshold = 512;
+  ASSERT_TRUE(store.Persist(manifest));
+
+  const auto loaded = store.Load();
+  ASSERT_TRUE(loaded.has_value());
+  EXPECT_EQ(loaded->generation, 2U);
+  EXPECT_EQ(loaded->inline_threshold, 512U);
+}
+
 TEST(ManifestStoreTest, LoadRejectsInvalidManifestOnDisk) {
   const auto dir = TempDir("jubilant-manifest-load");
 
@@ -75,6 +93,7 @@ TEST(ManifestStoreTest, LoadRejectsInvalidManifestOnDisk) {
 
   const auto manifest_offset = jubilant::disk::CreateManifest(
       builder,
+      /*generation=*/1,
       /*format_major=*/0,
       /*format_minor=*/0,
       /*page_size=*/4096,

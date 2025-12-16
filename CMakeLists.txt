@@ -34,8 +34,13 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/google/googletest.git
   GIT_TAG v1.14.0
 )
+FetchContent_Declare(
+  tomlplusplus
+  GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
+  GIT_TAG v3.4.0
+)
 
-FetchContent_MakeAvailable(flatbuffers googletest)
+FetchContent_MakeAvailable(flatbuffers googletest tomlplusplus)
 
 # Tooling ----------------------------------------------------------------------
 if(JUBILANT_ENABLE_CLANG_TIDY)
@@ -109,6 +114,7 @@ target_include_directories(jubildb
 target_link_libraries(jubildb
   PUBLIC
     flatbuffers
+    tomlplusplus::tomlplusplus
 )
 
 add_dependencies(jubildb generate_schemas)
@@ -144,10 +150,12 @@ if(JUBILANT_BUILD_TESTS)
   set(JUBILANT_TEST_SOURCES
     tests/btree_tests.cpp
     tests/checkpoint_tests.cpp
+    tests/config_tests.cpp
     tests/lock_manager_tests.cpp
     tests/manifest_tests.cpp
     tests/pager_tests.cpp
     tests/simple_store_tests.cpp
+    tests/superblock_tests.cpp
     tests/transaction_context_tests.cpp
     tests/value_log_tests.cpp
     tests/wal_tests.cpp

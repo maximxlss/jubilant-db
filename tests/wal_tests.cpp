@@ -1,6 +1,6 @@
 #include "storage/wal/wal_manager.h"
 
-#include <cstddef>
+#include <filesystem>
 #include <gtest/gtest.h>
 #include <optional>
 #include <string>
@@ -10,8 +10,21 @@ using jubilant::storage::wal::RecordType;
 using jubilant::storage::wal::WalManager;
 using jubilant::storage::wal::WalRecord;
 
-TEST(WalManagerTest, AssignsMonotonicLsnsAndReplaysBufferedRecords) {
-  WalManager wal{"/tmp/wal"};
+namespace fs = std::filesystem;
+
+namespace {
+
+fs::path TempDir(const std::string& name) {
+  const auto dir = fs::temp_directory_path() / name;
+  fs::remove_all(dir);
+  return dir;
+}
+
+} // namespace
+
+TEST(WalManagerTest, AssignsMonotonicLsnsAndReplaysFromDisk) {
+  const auto dir = TempDir("jubilant-wal");
+  WalManager wal{dir};
 
   WalRecord begin{};
   begin.type = RecordType::kTxnBegin;
@@ -32,9 +45,13 @@ TEST(WalManagerTest, AssignsMonotonicLsnsAndReplaysBufferedRecords) {
 
   wal.Flush();
 
-  const auto replay = wal.Replay();
+  WalManager wal_reopen{dir};
+
+  const auto replay = wal_reopen.Replay();
   EXPECT_EQ(replay.last_replayed, 2U);
   ASSERT_EQ(replay.committed.size(), 2U);
   EXPECT_EQ(replay.committed.front().type, RecordType::kTxnBegin);
+  EXPECT_EQ(replay.committed.front().lsn, 1U);
   EXPECT_EQ(replay.committed.back().type, RecordType::kUpsert);
+  EXPECT_EQ(replay.committed.back().lsn, 2U);
 }

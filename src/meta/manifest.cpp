@@ -46,6 +46,7 @@ std::optional<ManifestRecord> ManifestStore::Load() const {
   }
 
   ManifestRecord record{};
+  record.generation = manifest_fb->generation();
   record.format_major = manifest_fb->format_major();
   record.format_minor = manifest_fb->format_minor();
   record.page_size = manifest_fb->page_size();
@@ -81,7 +82,10 @@ ManifestValidationResult ManifestStore::Validate(const ManifestRecord& manifest)
   ManifestValidationResult result{};
   result.ok = true;
 
-  if (manifest.format_major == 0) {
+  if (manifest.generation == 0) {
+    result.ok = false;
+    result.message = "generation must be non-zero";
+  } else if (manifest.format_major == 0) {
     result.ok = false;
     result.message = "format_major must be non-zero";
   } else if (manifest.page_size == 0) {
@@ -110,10 +114,18 @@ ManifestValidationResult ManifestStore::Validate(const ManifestRecord& manifest)
   return result;
 }
 
-bool ManifestStore::Persist(const ManifestRecord& manifest) {
+bool ManifestStore::Persist(ManifestRecord& manifest) {
+  if (manifest.generation == 0) {
+    manifest.generation = 1;
+  }
+
   const auto validation = Validate(manifest);
   if (!validation.ok) {
     return false;
+  }
+
+  if (const auto existing = Load()) {
+    manifest.generation = existing->generation + 1;
   }
 
   if (!manifest_path_.parent_path().empty()) {
@@ -129,9 +141,10 @@ bool ManifestStore::Persist(const ManifestRecord& manifest) {
   const auto wal_schema = builder.CreateString(manifest.wal_schema);
   const auto hash_algorithm = builder.CreateString(manifest.hash_algorithm);
 
-  const auto manifest_offset = disk::CreateManifest(
-      builder, manifest.format_major, manifest.format_minor, manifest.page_size,
-      manifest.inline_threshold, uuid_vec, wire_schema, disk_schema, wal_schema, hash_algorithm);
+  const auto manifest_offset =
+      disk::CreateManifest(builder, manifest.generation, manifest.format_major,
+                           manifest.format_minor, manifest.page_size, manifest.inline_threshold,
+                           uuid_vec, wire_schema, disk_schema, wal_schema, hash_algorithm);
 
   builder.FinishSizePrefixed(manifest_offset, disk::ManifestIdentifier());
 

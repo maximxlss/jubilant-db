@@ -36,6 +36,8 @@ struct WalRecord {
   RecordType type{RecordType::kTxnBegin};
   std::uint64_t txn_id{0};
   std::optional<UpsertPayload> upsert;
+  std::optional<std::string> tombstone_key;
+  Lsn lsn{0};
 };
 
 } // namespace jubilant::storage::wal

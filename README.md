@@ -10,7 +10,7 @@ Jubilant DB is a single-node, hybrid memory+disk key–value store. It targets a
 ## At a glance
 
 * **Docs:** A curated index lives in [`docs/README.md`](docs/README.md); product and technical specs remain in `MAIN_SPECIFICATION.md` and `TECH_SPECIFICATION.md`.
-* **Current milestone (v0.0.1):** `jubectl init/set/get/del` flows are implemented through `SimpleStore` with UTF-8 key validation, overwrite semantics, and persistence across clean restarts. Coverage comes from unit tests for the B+Tree, pager, manifest/superblock skeleton, and the CLI-facing store wrapper. See [`FIRST_STEPS.md`](FIRST_STEPS.md) for acceptance criteria and the tests under `tests/` for evidence.
+* **Current milestone (v0.0.1):** `jubectl init/set/get/del` flows are implemented through `SimpleStore` with UTF-8 key validation, overwrite semantics, and persistence across clean restarts. Durability now includes monotonic manifest generations, CRC-protected dual superblocks, and a write-ahead log that replays on startup. Coverage comes from unit tests for the B+Tree, pager, manifest/superblock rotation, WAL replay, and the CLI-facing store wrapper. See [`FIRST_STEPS.md`](FIRST_STEPS.md) for acceptance criteria and the tests under `tests/` for evidence.
 * **Build + test quickly:** Configure with `cmake --preset dev-debug`, build via `cmake --build --preset dev-debug`, and run `ctest --preset dev-debug`.
 
 ## CLI quickstart
@@ -26,6 +26,31 @@ jubectl del <db_dir> <key>
 
 Keys must be valid UTF-8 and non-empty; values may be raw bytes (hex), UTF-8 strings, or signed 64-bit integers.
 
+## Configuration
+
+`jubildb` instances read TOML configuration files through `ConfigLoader` with sensible defaults for every field except the
+database path. A minimal configuration contains only the path:
+
+```toml
+db_path = "/var/lib/jubildb"
+```
+
+Additional settings are optional and validated on load (non-zero page size, inline threshold within the page, positive cache
+size, and a listen port within `1-65535`):
+
+```toml
+db_path = "./data"
+page_size = 8192
+inline_threshold = 2048
+group_commit_max_latency_ms = 12
+cache_bytes = 134217728
+listen_address = "0.0.0.0"
+listen_port = 7777
+```
+
+Defaults mirror the current implementation: 4 KiB pages, 1 KiB inline threshold, a 64 MiB cache, 5 ms max group-commit latency,
+and `127.0.0.1:6767` for the listening socket.
+
 ## Build + contribute
 
 The repository standardizes on CMake presets (3.25+ with Ninja recommended):
@@ -40,8 +65,8 @@ Linting-friendly presets exist (`dev-debug-tidy`), and `clang-format`/`clang-tid
 
 Short-term steps beyond v0.0.1:
 
-1. **Storage durability sweep:** Persist manifest generations, dual superblocks with CRC selection, and a write-ahead log replayed at startup.
-2. **B+Tree + pager completeness (landed):** Page allocation now writes chained leaf pages with CRC-guarded headers, and large values flow through the value log while small values stay inline.
+1. **(Done) Storage durability sweep:** Persist manifest generations, dual superblocks with CRC selection, and a write-ahead log replayed at startup.
+2. **(Done) B+Tree + pager completeness:** Page allocation now writes chained leaf pages with CRC-guarded headers, and large values flow through the value log while small values stay inline.
 3. **CLI and validation growth:** Extend `jubectl` with stats and validation commands, wired into the manifest/superblock metadata and storage checkpoints.
 
 For a longer-horizon view, see [`FUTURE_UPDATES.md`](FUTURE_UPDATES.md).

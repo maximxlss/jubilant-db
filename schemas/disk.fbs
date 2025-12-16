@@ -6,6 +6,7 @@ file_identifier "JBDK";
 // Additional fields can be appended in-place without breaking compatibility.
 
 table Manifest {
+  generation:ulong;
   format_major:ushort;
   format_minor:ushort;
   page_size:uint;

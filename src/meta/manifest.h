@@ -8,6 +8,7 @@
 namespace jubilant::meta {
 
 struct ManifestRecord {
+  std::uint64_t generation{1};
   std::uint16_t format_major{1};
   std::uint16_t format_minor{0};
   std::uint32_t page_size{4096};
@@ -31,7 +32,7 @@ public:
   [[nodiscard]] static ManifestRecord NewDefault(std::string uuid_seed);
   [[nodiscard]] std::optional<ManifestRecord> Load() const;
   [[nodiscard]] static ManifestValidationResult Validate(const ManifestRecord& manifest);
-  bool Persist(const ManifestRecord& manifest);
+  bool Persist(ManifestRecord& manifest);
 
 private:
   std::filesystem::path manifest_path_;
