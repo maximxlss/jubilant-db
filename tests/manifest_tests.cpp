@@ -1,13 +1,12 @@
-#include <filesystem>
-#include <fstream>
-#include <string>
-#include <vector>
-
-#include <flatbuffers/flatbuffers.h>
-#include <gtest/gtest.h>
-
 #include "disk_generated.h"
 #include "meta/manifest.h"
+
+#include <filesystem>
+#include <flatbuffers/flatbuffers.h>
+#include <fstream>
+#include <gtest/gtest.h>
+#include <string>
+#include <vector>
 
 using jubilant::meta::ManifestRecord;
 using jubilant::meta::ManifestStore;
@@ -22,13 +21,13 @@ fs::path TempDir(const std::string& name) {
   return dir;
 }
 
-}  // namespace
+} // namespace
 
 TEST(ManifestStoreTest, PersistsAndLoadsValidManifest) {
   const auto dir = TempDir("jubilant-manifest-valid");
   ManifestStore store{dir};
 
-  auto manifest = store.NewDefault("uuid-123");
+  auto manifest = jubilant::meta::ManifestStore::NewDefault("uuid-123");
   manifest.page_size = 8192;
   manifest.inline_threshold = 512;
 
@@ -36,18 +35,22 @@ TEST(ManifestStoreTest, PersistsAndLoadsValidManifest) {
 
   const auto loaded = store.Load();
   ASSERT_TRUE(loaded.has_value());
-  EXPECT_EQ(loaded->db_uuid, "uuid-123");
-  EXPECT_EQ(loaded->page_size, 8192u);
-  EXPECT_EQ(loaded->inline_threshold, 512u);
-  EXPECT_EQ(loaded->hash_algorithm, manifest.hash_algorithm);
+  if (!loaded.has_value()) {
+    return;
+  }
+  const auto& loaded_manifest = loaded.value();
+  EXPECT_EQ(loaded_manifest.db_uuid, "uuid-123");
+  EXPECT_EQ(loaded_manifest.page_size, 8192U);
+  EXPECT_EQ(loaded_manifest.inline_threshold, 512U);
+  EXPECT_EQ(loaded_manifest.hash_algorithm, manifest.hash_algorithm);
 }
 
 TEST(ManifestStoreTest, RejectsInvalidManifestValues) {
   const auto dir = TempDir("jubilant-manifest-invalid");
   ManifestStore store{dir};
 
-  auto manifest = store.NewDefault("uuid-456");
-  manifest.inline_threshold = manifest.page_size;  // Not allowed to inline full page.
+  auto manifest = jubilant::meta::ManifestStore::NewDefault("uuid-456");
+  manifest.inline_threshold = manifest.page_size; // Not allowed to inline full page.
 
   EXPECT_FALSE(store.Persist(manifest));
 
@@ -64,8 +67,7 @@ TEST(ManifestStoreTest, LoadRejectsInvalidManifestOnDisk) {
 
   // Write an invalid manifest with format_major == 0 to disk.
   flatbuffers::FlatBufferBuilder builder;
-  const auto uuid_vec = builder.CreateVector(
-      reinterpret_cast<const uint8_t*>("bad-uuid"), 8);
+  const auto uuid_vec = builder.CreateVector(reinterpret_cast<const uint8_t*>("bad-uuid"), 8);
   const auto wire_schema = builder.CreateString("wire");
   const auto disk_schema = builder.CreateString("disk");
   const auto wal_schema = builder.CreateString("wal");
@@ -76,18 +78,15 @@ TEST(ManifestStoreTest, LoadRejectsInvalidManifestOnDisk) {
       /*format_major=*/0,
       /*format_minor=*/0,
       /*page_size=*/4096,
-      /*inline_threshold=*/1024,
-      uuid_vec, wire_schema, disk_schema, wal_schema, hash_algorithm);
+      /*inline_threshold=*/1024, uuid_vec, wire_schema, disk_schema, wal_schema, hash_algorithm);
 
-  builder.FinishSizePrefixed(manifest_offset,
-                             jubilant::disk::ManifestIdentifier());
+  builder.FinishSizePrefixed(manifest_offset, jubilant::disk::ManifestIdentifier());
 
   const auto manifest_path = dir / "MANIFEST";
   fs::create_directories(dir);
   std::ofstream out(manifest_path, std::ios::binary | std::ios::trunc);
   ASSERT_TRUE(out);
-  out.write(reinterpret_cast<const char*>(builder.GetBufferPointer()),
-            builder.GetSize());
+  out.write(reinterpret_cast<const char*>(builder.GetBufferPointer()), builder.GetSize());
   out.close();
 
   ManifestStore store{dir};

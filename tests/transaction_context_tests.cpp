@@ -1,10 +1,9 @@
-#include <string>
-#include <variant>
-
-#include <gtest/gtest.h>
-
 #include "storage/btree/btree.h"
 #include "txn/transaction_context.h"
+
+#include <gtest/gtest.h>
+#include <string>
+#include <variant>
 
 using jubilant::storage::btree::Record;
 using jubilant::txn::TransactionContext;
@@ -13,7 +12,7 @@ using jubilant::txn::TransactionState;
 TEST(TransactionContextTest, TracksOverlayReadsAndWrites) {
   TransactionContext txn{42};
 
-  EXPECT_EQ(txn.id(), 42u);
+  EXPECT_EQ(txn.id(), 42U);
   EXPECT_EQ(txn.state(), TransactionState::kPending);
   EXPECT_FALSE(txn.Read("missing").has_value());
 
@@ -23,7 +22,11 @@ TEST(TransactionContextTest, TracksOverlayReadsAndWrites) {
 
   const auto found = txn.Read("key");
   ASSERT_TRUE(found.has_value());
-  EXPECT_EQ(std::get<std::string>(found->value), "value");
+  if (!found.has_value()) {
+    return;
+  }
+  const auto& found_record = found.value();
+  EXPECT_EQ(std::get<std::string>(found_record.value), "value");
 }
 
 TEST(TransactionContextTest, MarksCommitAndAbortStates) {

@@ -12,9 +12,9 @@ constexpr std::uint32_t kCrc32Polynomial = 0xEDB88320U;
 constexpr std::array<std::uint32_t, 256> BuildTable() {
   std::array<std::uint32_t, 256> table{};
   for (std::size_t i = 0; i < table.size(); ++i) {
-    std::uint32_t crc = static_cast<std::uint32_t>(i);
+    auto crc = static_cast<std::uint32_t>(i);
     for (int bit = 0; bit < 8; ++bit) {
-      if (crc & 1U) {
+      if ((crc & 1U) != 0U) {
         crc = (crc >> 1U) ^ kCrc32Polynomial;
       } else {
         crc >>= 1U;
@@ -27,7 +27,7 @@ constexpr std::array<std::uint32_t, 256> BuildTable() {
 
 constexpr std::array<std::uint32_t, 256> kCrcTable = BuildTable();
 
-}  // namespace
+} // namespace
 
 std::uint32_t ComputeCrc32(std::span<const std::byte> data) {
   std::uint32_t crc = 0xFFFFFFFFU;
@@ -40,5 +40,4 @@ std::uint32_t ComputeCrc32(std::span<const std::byte> data) {
   return crc ^ 0xFFFFFFFFU;
 }
 
-}  // namespace jubilant::storage
-
+} // namespace jubilant::storage

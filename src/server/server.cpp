@@ -6,13 +6,12 @@
 namespace jubilant::server {
 
 Server::Server(std::filesystem::path base_dir, std::size_t worker_count)
-    : base_dir_(std::move(base_dir)),
-      worker_count_(worker_count),
-      wal_manager_(base_dir_),
-      manifest_store_(base_dir_),
-      superblock_store_(base_dir_) {}
+    : base_dir_(std::move(base_dir)), worker_count_(worker_count), wal_manager_(base_dir_),
+      manifest_store_(base_dir_), superblock_store_(base_dir_) {}
 
-Server::~Server() { Stop(); }
+Server::~Server() {
+  Stop();
+}
 
 void Server::Start() {
   if (running_.exchange(true)) {
@@ -37,7 +36,9 @@ void Server::Stop() {
   workers_.clear();
 }
 
-bool Server::running() const noexcept { return running_.load(); }
+bool Server::running() const noexcept {
+  return running_.load();
+}
 
 void Server::WorkerLoop() {
   // Request dispatch will be wired up after the wire protocol lands. Keeping a
@@ -47,4 +48,4 @@ void Server::WorkerLoop() {
   }
 }
 
-}  // namespace jubilant::server
+} // namespace jubilant::server

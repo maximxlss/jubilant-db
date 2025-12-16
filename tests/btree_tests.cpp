@@ -1,12 +1,11 @@
+#include "storage/btree/btree.h"
+
 #include <cstddef>
 #include <cstdint>
+#include <gtest/gtest.h>
 #include <string>
 #include <variant>
 #include <vector>
-
-#include <gtest/gtest.h>
-
-#include "storage/btree/btree.h"
 
 using jubilant::storage::btree::BTree;
 using jubilant::storage::btree::Record;
@@ -21,8 +20,12 @@ TEST(BTreeTest, InsertAndFindReturnsStoredRecord) {
 
   const auto found = tree.Find("key");
   ASSERT_TRUE(found.has_value());
-  EXPECT_EQ(std::get<std::string>(found->value), "hello");
-  EXPECT_EQ(found->metadata.ttl_epoch_seconds, 1234u);
+  if (!found.has_value()) {
+    return;
+  }
+  const auto& found_record = found.value();
+  EXPECT_EQ(std::get<std::string>(found_record.value), "hello");
+  EXPECT_EQ(found_record.metadata.ttl_epoch_seconds, 1234U);
 }
 
 TEST(BTreeTest, InsertOverwritesExistingKey) {
@@ -41,10 +44,13 @@ TEST(BTreeTest, InsertOverwritesExistingKey) {
 
   const auto found = tree.Find("dup");
   ASSERT_TRUE(found.has_value());
-  EXPECT_EQ(std::get<std::vector<std::byte>>(found->value).front(),
-            std::byte{0xAA});
-  EXPECT_EQ(found->metadata.ttl_epoch_seconds, 20u);
-  EXPECT_EQ(tree.size(), 1u);
+  if (!found.has_value()) {
+    return;
+  }
+  const auto& found_record = found.value();
+  EXPECT_EQ(std::get<std::vector<std::byte>>(found_record.value).front(), std::byte{0xAA});
+  EXPECT_EQ(found_record.metadata.ttl_epoch_seconds, 20U);
+  EXPECT_EQ(tree.size(), 1U);
 }
 
 TEST(BTreeTest, EraseRemovesKeysAndReportsResult) {

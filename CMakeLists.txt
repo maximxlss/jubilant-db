@@ -11,6 +11,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(FetchContent)
 
 option(JUBILANT_BUILD_TESTS "Build Jubilant DB tests" ON)
+option(JUBILANT_ENABLE_CLANG_TIDY "Enable clang-tidy diagnostics" OFF)
 
 # Third-party build options ----------------------------------------------------
 set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -35,6 +36,19 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(flatbuffers googletest)
+
+# Tooling ----------------------------------------------------------------------
+if(JUBILANT_ENABLE_CLANG_TIDY)
+  find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy)
+  if(CLANG_TIDY_EXECUTABLE)
+    set(CMAKE_CXX_CLANG_TIDY
+        ${CLANG_TIDY_EXECUTABLE}
+        --config-file=${CMAKE_SOURCE_DIR}/.clang-tidy
+    )
+  else()
+    message(WARNING "clang-tidy requested but not found on PATH")
+  endif()
+endif()
 
 # FlatBuffers schema generation ------------------------------------------------
 set(JUBILANT_SCHEMA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/schemas)
@@ -153,4 +167,29 @@ if(JUBILANT_BUILD_TESTS)
 
   include(GoogleTest)
   gtest_discover_tests(unit_tests)
+endif()
+
+file(GLOB_RECURSE JUBILANT_FORMAT_SOURCES CONFIGURE_DEPENDS
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/tools/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp
+)
+
+find_program(CLANG_FORMAT_EXECUTABLE NAMES clang-format)
+if(CLANG_FORMAT_EXECUTABLE)
+  add_custom_target(clang-format
+    COMMAND ${CLANG_FORMAT_EXECUTABLE} -i ${JUBILANT_FORMAT_SOURCES}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Running clang-format on project sources"
+  )
+
+  add_custom_target(clang-format-check
+    COMMAND ${CLANG_FORMAT_EXECUTABLE} --dry-run --Werror ${JUBILANT_FORMAT_SOURCES}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Checking clang-format compliance"
+  )
+else()
+  message(STATUS "clang-format not found; clang-format targets skipped")
 endif()

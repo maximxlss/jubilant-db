@@ -1,15 +1,14 @@
+#include "lock/lock_manager.h"
+#include "storage/btree/btree.h"
+
 #include <atomic>
 #include <barrier>
 #include <chrono>
 #include <future>
+#include <gtest/gtest.h>
 #include <string>
 #include <thread>
 #include <vector>
-
-#include <gtest/gtest.h>
-
-#include "lock/lock_manager.h"
-#include "storage/btree/btree.h"
 
 using jubilant::lock::LockManager;
 using jubilant::lock::LockMode;
@@ -31,8 +30,7 @@ TEST(LockManagerTest, AllowsConcurrentSharedAccess) {
     const int current = ++active_readers;
 
     int observed = max_readers.load();
-    while (current > observed &&
-           !max_readers.compare_exchange_weak(observed, current)) {
+    while (current > observed && !max_readers.compare_exchange_weak(observed, current)) {
       // observed value updated by compare_exchange_weak
     }
 
@@ -82,8 +80,7 @@ TEST(LockManagerTest, ExclusiveBlocksSharedAccess) {
   shared.join();
 
   const auto elapsed =
-      std::chrono::duration_cast<std::chrono::milliseconds>(shared_acquired -
-                                                            shared_start);
+      std::chrono::duration_cast<std::chrono::milliseconds>(shared_acquired - shared_start);
   EXPECT_GE(elapsed.count(), 45);
 }
 
@@ -108,7 +105,11 @@ TEST(LockManagerTest, SerializesConcurrentUpdatesAcrossRequests) {
 
       auto found = tree.Find(key);
       ASSERT_TRUE(found.has_value());
-      auto current = std::get<std::int64_t>(found->value);
+      if (!found.has_value()) {
+        return;
+      }
+      const auto& current_record = found.value();
+      auto current = std::get<std::int64_t>(current_record.value);
 
       Record updated{};
       updated.value = current + 1;
@@ -129,6 +130,9 @@ TEST(LockManagerTest, SerializesConcurrentUpdatesAcrossRequests) {
 
   auto final_record = tree.Find(key);
   ASSERT_TRUE(final_record.has_value());
-  EXPECT_EQ(std::get<std::int64_t>(final_record->value),
-            kThreadCount * kIterations);
+  if (!final_record.has_value()) {
+    return;
+  }
+  const auto& final_record_value = final_record.value();
+  EXPECT_EQ(std::get<std::int64_t>(final_record_value.value), kThreadCount * kIterations);
 }

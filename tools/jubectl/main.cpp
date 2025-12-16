@@ -1,3 +1,6 @@
+#include "storage/btree/btree.h"
+#include "storage/simple_store.h"
+
 #include <cstdlib>
 #include <filesystem>
 #include <iomanip>
@@ -8,10 +11,28 @@
 #include <variant>
 #include <vector>
 
-#include "storage/btree/btree.h"
-#include "storage/simple_store.h"
-
 namespace {
+
+struct RecordArgs {
+  std::string_view type;
+  std::string_view value;
+};
+
+struct SetCommand {
+  std::string_view db_dir;
+  std::string_view key;
+  RecordArgs record_args;
+};
+
+struct GetCommand {
+  std::string_view db_dir;
+  std::string_view key;
+};
+
+struct DeleteCommand {
+  std::string_view db_dir;
+  std::string_view key;
+};
 
 void PrintUsage() {
   std::cout << "jubectl <command> [args]\n"
@@ -32,15 +53,15 @@ std::vector<std::byte> ParseHex(std::string_view hex) {
 
   for (std::size_t i = 0; i < hex.size(); i += 2) {
     const auto byte_str = hex.substr(i, 2);
-    auto hex_val = [](char c) -> unsigned {
-      if (c >= '0' && c <= '9') {
-        return static_cast<unsigned>(c - '0');
+    auto hex_val = [](char hex_char) -> unsigned {
+      if (hex_char >= '0' && hex_char <= '9') {
+        return static_cast<unsigned>(hex_char - '0');
       }
-      if (c >= 'a' && c <= 'f') {
-        return static_cast<unsigned>(10 + (c - 'a'));
+      if (hex_char >= 'a' && hex_char <= 'f') {
+        return static_cast<unsigned>(10 + (hex_char - 'a'));
       }
-      if (c >= 'A' && c <= 'F') {
-        return static_cast<unsigned>(10 + (c - 'A'));
+      if (hex_char >= 'A' && hex_char <= 'F') {
+        return static_cast<unsigned>(10 + (hex_char - 'A'));
       }
       throw std::invalid_argument("Invalid hex digit");
     };
@@ -60,16 +81,15 @@ int HandleInit(std::string_view db_dir) {
   return EXIT_SUCCESS;
 }
 
-jubilant::storage::btree::Record BuildRecord(std::string_view type,
-                                            std::string_view value) {
+jubilant::storage::btree::Record BuildRecord(const RecordArgs& args) {
   jubilant::storage::btree::Record record{};
 
-  if (type == "bytes") {
-    record.value = ParseHex(value);
-  } else if (type == "string") {
-    record.value = std::string{value};
-  } else if (type == "int") {
-    record.value = std::stoll(std::string{value});
+  if (args.type == "bytes") {
+    record.value = ParseHex(args.value);
+  } else if (args.type == "string") {
+    record.value = std::string{args.value};
+  } else if (args.type == "int") {
+    record.value = std::stoll(std::string{args.value});
   } else {
     throw std::invalid_argument("Unknown value type");
   }
@@ -77,19 +97,18 @@ jubilant::storage::btree::Record BuildRecord(std::string_view type,
   return record;
 }
 
-int HandleSet(std::string_view db_dir, std::string_view key,
-              std::string_view type, std::string_view value) {
-  auto store = jubilant::storage::SimpleStore::Open(db_dir);
-  const auto record = BuildRecord(type, value);
-  store.Set(std::string{key}, record);
+int HandleSet(SetCommand command) {
+  auto store = jubilant::storage::SimpleStore::Open(command.db_dir);
+  const auto record = BuildRecord(command.record_args);
+  store.Set(std::string{command.key}, record);
   store.Sync();
   std::cout << "OK\n";
   return EXIT_SUCCESS;
 }
 
-int HandleGet(std::string_view db_dir, std::string_view key) {
-  auto store = jubilant::storage::SimpleStore::Open(db_dir);
-  const auto result = store.Get(std::string{key});
+int HandleGet(GetCommand command) {
+  auto store = jubilant::storage::SimpleStore::Open(command.db_dir);
+  const auto result = store.Get(std::string{command.key});
   if (!result.has_value()) {
     std::cout << "(nil)\n";
     return EXIT_SUCCESS;
@@ -99,9 +118,9 @@ int HandleGet(std::string_view db_dir, std::string_view key) {
   if (std::holds_alternative<std::vector<std::byte>>(value)) {
     const auto& bytes = std::get<std::vector<std::byte>>(value);
     std::cout << "bytes:";
-    for (const auto b : bytes) {
+    for (const auto byte_value : bytes) {
       std::cout << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
-                << static_cast<int>(b);
+                << static_cast<int>(byte_value);
     }
     std::cout << std::dec << "\n";
   } else if (std::holds_alternative<std::string>(value)) {
@@ -112,50 +131,62 @@ int HandleGet(std::string_view db_dir, std::string_view key) {
   return EXIT_SUCCESS;
 }
 
-int HandleDel(std::string_view db_dir, std::string_view key) {
-  auto store = jubilant::storage::SimpleStore::Open(db_dir);
-  const bool removed = store.Delete(std::string{key});
+int HandleDel(DeleteCommand command) {
+  auto store = jubilant::storage::SimpleStore::Open(command.db_dir);
+  const bool removed = store.Delete(std::string{command.key});
   store.Sync();
   std::cout << (removed ? "(1)\n" : "(0)\n");
   return EXIT_SUCCESS;
 }
 
-}  // namespace
+} // namespace
 
 int main(int argc, char** argv) {
-  if (argc < 2) {
+  try {
+    if (argc < 2) {
+      PrintUsage();
+      return EXIT_FAILURE;
+    }
+
+    const std::string command{argv[1]};
+    if (command == "init") {
+      if (argc != 3) {
+        PrintUsage();
+        return EXIT_FAILURE;
+      }
+      return HandleInit(argv[2]);
+    }
+
+    if (command == "set") {
+      if (argc != 6) {
+        PrintUsage();
+        return EXIT_FAILURE;
+      }
+      return HandleSet(
+          {.db_dir = argv[2], .key = argv[3], .record_args = {.type = argv[4], .value = argv[5]}});
+    }
+
+    if (command == "get") {
+      if (argc != 4) {
+        PrintUsage();
+        return EXIT_FAILURE;
+      }
+      return HandleGet({.db_dir = argv[2], .key = argv[3]});
+    }
+
+    if (command == "del") {
+      if (argc != 4) {
+        PrintUsage();
+        return EXIT_FAILURE;
+      }
+      return HandleDel({.db_dir = argv[2], .key = argv[3]});
+    }
+
+    std::cerr << "Command '" << command << "' not yet implemented.\n";
     PrintUsage();
     return EXIT_FAILURE;
+  } catch (const std::exception& ex) {
+    std::cerr << "Error: " << ex.what() << "\n";
+    return EXIT_FAILURE;
   }
-
-  const std::string command{argv[1]};
-  if (command == "init") {
-    if (argc != 3) {
-      PrintUsage();
-      return EXIT_FAILURE;
-    }
-    return HandleInit(argv[2]);
-  } else if (command == "set") {
-    if (argc != 6) {
-      PrintUsage();
-      return EXIT_FAILURE;
-    }
-    return HandleSet(argv[2], argv[3], argv[4], argv[5]);
-  } else if (command == "get") {
-    if (argc != 4) {
-      PrintUsage();
-      return EXIT_FAILURE;
-    }
-    return HandleGet(argv[2], argv[3]);
-  } else if (command == "del") {
-    if (argc != 4) {
-      PrintUsage();
-      return EXIT_FAILURE;
-    }
-    return HandleDel(argv[2], argv[3]);
-  }
-
-  std::cerr << "Command '" << command << "' not yet implemented.\n";
-  PrintUsage();
-  return EXIT_FAILURE;
 }

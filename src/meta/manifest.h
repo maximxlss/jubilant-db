@@ -25,17 +25,16 @@ struct ManifestValidationResult {
 };
 
 class ManifestStore {
- public:
-  explicit ManifestStore(std::filesystem::path base_dir);
+public:
+  explicit ManifestStore(const std::filesystem::path& base_dir);
 
-  [[nodiscard]] ManifestRecord NewDefault(std::string uuid_seed) const;
+  [[nodiscard]] static ManifestRecord NewDefault(std::string uuid_seed);
   [[nodiscard]] std::optional<ManifestRecord> Load() const;
-  [[nodiscard]] ManifestValidationResult Validate(
-      const ManifestRecord& manifest) const;
+  [[nodiscard]] static ManifestValidationResult Validate(const ManifestRecord& manifest);
   bool Persist(const ManifestRecord& manifest);
 
- private:
+private:
   std::filesystem::path manifest_path_;
 };
 
-}  // namespace jubilant::meta
+} // namespace jubilant::meta

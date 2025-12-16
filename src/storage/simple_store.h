@@ -1,13 +1,13 @@
 #pragma once
 
-#include <filesystem>
-#include <optional>
-#include <string>
-
 #include "meta/manifest.h"
 #include "meta/superblock.h"
 #include "storage/btree/btree.h"
 #include "storage/pager/pager.h"
+
+#include <filesystem>
+#include <optional>
+#include <string>
 
 namespace jubilant::storage {
 
@@ -15,11 +15,10 @@ namespace jubilant::storage {
 // in the pager; the in-memory B-Tree facade provides overwrite + tombstone
 // semantics without a full on-disk tree layout yet.
 class SimpleStore {
- public:
+public:
   static SimpleStore Open(const std::filesystem::path& db_dir);
 
-  [[nodiscard]] std::optional<btree::Record> Get(
-      const std::string& key) const;
+  [[nodiscard]] std::optional<btree::Record> Get(const std::string& key) const;
   void Set(const std::string& key, btree::Record record);
   bool Delete(const std::string& key);
 
@@ -27,15 +26,14 @@ class SimpleStore {
 
   [[nodiscard]] std::uint64_t size() const noexcept;
 
- private:
+private:
   SimpleStore(std::filesystem::path db_dir, meta::ManifestRecord manifest,
               meta::SuperBlock superblock, Pager pager);
 
   void LoadFromPages();
-  void AppendRecordPage(const std::string& key, const btree::Record& record,
-                        bool tombstone);
-  [[nodiscard]] std::vector<std::byte> EncodeRecord(
-      const std::string& key, const btree::Record& record, bool tombstone);
+  void AppendRecordPage(const std::string& key, const btree::Record& record, bool tombstone);
+  [[nodiscard]] std::vector<std::byte> EncodeRecord(const std::string& key,
+                                                    const btree::Record& record, bool tombstone);
   [[nodiscard]] static std::optional<std::pair<std::string, btree::Record>>
   DecodeRecord(const std::vector<std::byte>& payload, bool& tombstone);
 
@@ -48,5 +46,4 @@ class SimpleStore {
   btree::BTree tree_;
 };
 
-}  // namespace jubilant::storage
-
+} // namespace jubilant::storage

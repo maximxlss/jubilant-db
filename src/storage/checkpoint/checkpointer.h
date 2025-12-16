@@ -1,10 +1,10 @@
 #pragma once
 
+#include "storage/wal/wal_record.h"
+
 #include <cstdint>
 #include <functional>
 #include <optional>
-
-#include "storage/wal/wal_record.h"
 
 namespace jubilant::storage::checkpoint {
 
@@ -14,17 +14,16 @@ struct CheckpointSnapshot {
 };
 
 class Checkpointer {
- public:
+public:
   using FlushCallback = std::function<void(wal::Lsn)>;
 
   Checkpointer() = default;
 
   void RequestCheckpoint(wal::Lsn target_lsn);
-  [[nodiscard]] std::optional<CheckpointSnapshot> RunOnce(
-      const FlushCallback& flush);
+  [[nodiscard]] std::optional<CheckpointSnapshot> RunOnce(const FlushCallback& flush);
 
- private:
+private:
   std::optional<wal::Lsn> target_lsn_;
 };
 
-}  // namespace jubilant::storage::checkpoint
+} // namespace jubilant::storage::checkpoint

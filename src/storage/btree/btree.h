@@ -27,7 +27,7 @@ struct Record {
 };
 
 class BTree {
- public:
+public:
   BTree() = default;
 
   [[nodiscard]] std::optional<Record> Find(const std::string& key) const;
@@ -35,10 +35,10 @@ class BTree {
   [[nodiscard]] bool Erase(const std::string& key);
   [[nodiscard]] std::size_t size() const noexcept;
 
- private:
+private:
   // A durable, page-backed layout will replace this in-memory map. Keeping the
   // shape close to the desired API lets tests drive out disk persistence later.
   std::map<std::string, Record> in_memory_;
 };
 
-}  // namespace jubilant::storage::btree
+} // namespace jubilant::storage::btree

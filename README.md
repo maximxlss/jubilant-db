@@ -75,6 +75,26 @@ The repository ships with CMake presets to keep day-to-day workflows short and r
 
 Release-tuned variants are available via the `dev-release` presets when you want to check optimizer-sensitive behavior.
 
+### Clang-based tooling
+
+The project includes configuration files for `clang-format` and `clang-tidy` so contributors can keep edits consistent:
+
+* Apply formatting (or enforce it without touching files) from any configured build tree:
+
+  ```sh
+  cmake --build --preset dev-debug --target clang-format
+  cmake --build --preset dev-debug --target clang-format-check
+  ```
+
+* Enable clang-tidy during a configure step using the dedicated presets:
+
+  ```sh
+  cmake --preset dev-debug-tidy
+  cmake --build --preset dev-debug-tidy
+  ```
+
+  The tidy preset wires the repository's `.clang-tidy` policy into CMake so diagnostics appear alongside regular compiler output.
+
 ## License
 
 Jubilant DB is available under the [MIT License](LICENSE), encouraging reuse and contribution without restrictive terms.
