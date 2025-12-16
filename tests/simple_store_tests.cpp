@@ -87,3 +87,23 @@ TEST(SimpleStoreTest, PersistsAcrossReopen) {
   const auto& found_record = found.value();
   EXPECT_EQ(std::get<std::int64_t>(found_record.value), 42);
 }
+
+TEST(SimpleStoreTest, RoutesLargeValuesThroughValueLogAndReloads) {
+  const auto dir = TempDir("jubilant-simple-store-vlog");
+  std::string large_value(2048, 'z');
+  {
+    auto store = SimpleStore::Open(dir);
+    Record record{};
+    record.value = large_value;
+    store.Set("big", record);
+    store.Sync();
+  }
+
+  const auto segment_path = dir / "vlog" / "segment-0.vlog";
+  EXPECT_TRUE(std::filesystem::exists(segment_path));
+
+  auto reopened = SimpleStore::Open(dir);
+  const auto found = reopened.Get("big");
+  ASSERT_TRUE(found.has_value());
+  EXPECT_EQ(std::get<std::string>(found->value), large_value);
+}

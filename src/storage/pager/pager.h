@@ -20,6 +20,7 @@ enum class PageType : std::uint16_t {
 struct Page {
   std::uint64_t id{};
   PageType type{PageType::kUnknown};
+  std::uint64_t lsn{0};
   std::vector<std::byte> payload;
 };
 
@@ -57,9 +58,10 @@ private:
 
   struct PageHeader {
     std::uint64_t id{0};
+    std::uint64_t lsn{0};
     std::uint16_t type{0};
-    std::uint32_t crc{0};
     std::uint16_t reserved{0};
+    std::uint32_t crc{0};
   };
 
   std::filesystem::path data_path_;
@@ -69,7 +71,8 @@ private:
   int file_descriptor_{-1};
 
   [[nodiscard]] std::uint64_t OffsetFor(std::uint64_t page_id) const;
-  [[nodiscard]] static std::uint32_t ComputeCrc(const std::vector<std::byte>& payload);
+  [[nodiscard]] static std::uint32_t ComputeCrc(const PageHeader& header,
+                                                const std::vector<std::byte>& payload);
   [[nodiscard]] static Page ParsePage(const std::vector<std::byte>& buffer,
                                       std::uint32_t payload_size);
   void CloseFileDescriptor();
