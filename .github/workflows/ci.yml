@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: ["**"]
 
+env:
+  CCACHE_DIR: ${{ github.workspace }}/.ccache
+  CCACHE_BASEDIR: ${{ github.workspace }}
+  CCACHE_COMPRESS: 1
+  CCACHE_MAXSIZE: 1G
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -14,16 +20,55 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Restore ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ runner.os }}-${{ hashFiles('CMakeLists.txt', 'cmake/**/*.cmake', 'src/**/*', 'tests/**/*', 'tools/**/*', 'schemas/**/*') }}
+          restore-keys: |
+            ccache-${{ runner.os }}-
+
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake ninja-build
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build clang-format clang-tidy ccache
+
+      - name: Prepare ccache
+        run: |
+          mkdir -p "${CCACHE_DIR}"
+          ccache --zero-stats || true
+          ccache --max-size="${CCACHE_MAXSIZE}"
+
+      - name: Run clang-format
+        run: |
+          files=$(git ls-files '*.c' '*.cc' '*.cpp' '*.h' '*.hpp')
+          if [ -n "$files" ]; then
+            clang-format --dry-run --Werror $files
+          fi
 
       - name: Configure
-        run: cmake -S . -B build -G Ninja -DJUBILANT_BUILD_TESTS=ON
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          -DJUBILANT_BUILD_TESTS=ON
+
+      - name: Generate FlatBuffers headers
+        run: cmake --build build --target generate_schemas
+
+      - name: Run clang-tidy
+        run: |
+          files=$(git ls-files '*.c' '*.cc' '*.cpp')
+          if [ -n "$files" ]; then
+            run-clang-tidy -p build -quiet $files
+          fi
 
       - name: Build
         run: cmake --build build --config Debug
 
       - name: Run tests
         run: ctest --test-dir build --output-on-failure
+
+      - name: Show ccache stats
+        run: ccache --show-stats
