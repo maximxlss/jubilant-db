@@ -1,5 +1,3 @@
-// Copyright 2024 Jubilant DB
-
 #include "lock/lock_manager.h"
 
 namespace jubilant::lock {

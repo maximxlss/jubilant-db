@@ -1,5 +1,3 @@
-// Copyright 2024 Jubilant DB
-
 #include <cstdlib>
 #include <filesystem>
 #include <iomanip>

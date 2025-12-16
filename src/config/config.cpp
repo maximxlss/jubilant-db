@@ -1,5 +1,3 @@
-// Copyright 2024 Jubilant DB
-
 #include "config/config.h"
 
 #include <utility>

@@ -1,5 +1,3 @@
-// Copyright 2024 Jubilant DB
-
 #include "meta/manifest.h"
 
 #include <flatbuffers/flatbuffers.h>

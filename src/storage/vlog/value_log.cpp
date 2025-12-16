@@ -1,5 +1,3 @@
-// Copyright 2024 Jubilant DB
-
 #include "storage/vlog/value_log.h"
 
 #include <utility>

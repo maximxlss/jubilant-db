@@ -1,5 +1,3 @@
-// Copyright 2024 Jubilant DB
-
 #include "storage/checkpoint/checkpointer.h"
 
 namespace jubilant::storage::checkpoint {

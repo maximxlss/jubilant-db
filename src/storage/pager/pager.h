@@ -1,4 +1,3 @@
-// Copyright 2024 Jubilant DB
 #pragma once
 
 #include <cstddef>

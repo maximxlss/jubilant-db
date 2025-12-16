@@ -49,3 +49,7 @@ Active scaffolding modules are wired into the build so they can evolve increment
 * Config: default loader with a TOML-ready hook.
 
 Every component should favor small, testable interfaces so that future work can proceed in a TDD-friendly manner.
+
+## License
+
+Jubilant DB is available under the [MIT License](LICENSE), encouraging reuse and contribution without restrictive terms.

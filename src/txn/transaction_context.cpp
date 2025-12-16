@@ -1,5 +1,3 @@
-// Copyright 2024 Jubilant DB
-
 #include "txn/transaction_context.h"
 
 #include <utility>

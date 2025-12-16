@@ -1,5 +1,3 @@
-// Copyright 2024 Jubilant DB
-
 #include "storage/pager/pager.h"
 
 #include <fcntl.h>

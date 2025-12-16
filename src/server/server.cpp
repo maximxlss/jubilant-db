@@ -1,5 +1,3 @@
-// Copyright 2024 Jubilant DB
-
 #include "server/server.h"
 
 #include <thread>

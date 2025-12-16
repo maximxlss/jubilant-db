@@ -1,5 +1,3 @@
-// Copyright 2024 Jubilant DB
-
 #include "storage/wal/wal_manager.h"
 
 #include <utility>
