@@ -1,0 +1,31 @@
+# Build artifacts
+build/
+cmake-build-*/
+out/
+bin/
+
+# C/C++ intermediates
+*.o
+*.obj
+*.lo
+*.a
+*.so
+*.dll
+*.dylib
+*.exe
+*.pdb
+
+# Generated files
+*.flatb
+*.gen.h
+*.gen.cpp
+
+# Editor/OS files
+.DS_Store
+*~
+.vscode/
+.idea/
+
+# Testing and logs
+*.log
+/coverage/

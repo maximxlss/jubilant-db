@@ -1,4 +1,4 @@
-# HybridKV v1.0 Specification
+# Jubilant DB v1.0 Specification
 
 A single-node, hybrid memory+disk key–value database with a Redis-like feel (simple commands + transactions), built around a **C-compatible binary protocol**, **FlatBuffers** for wire + disk structures, **serializable transactions (strict 2PL)**, and a **B+Tree + WAL + value-log** storage engine.
 
@@ -19,7 +19,7 @@ This spec is “ready to build”: it nails down semantics, file layout, recover
 * WAL with group commit; redo-only recovery.
 * Auto repair on open (conservative).
 * LRU cache (unified).
-* Admin CLI (`kvdbctl`) and `INFO` introspection.
+* Admin CLI (`jubectl`) and `INFO` introspection.
 
 ### Out of scope (v1)
 
@@ -375,7 +375,7 @@ GC semantics:
   * vlog stats (segments, live ratio, last GC)
   * TTL sweeper stats
 
-### Admin CLI (`kvdbctl`)
+### Admin CLI (`jubectl`)
 
 * `info`
 * `checkpoint`
@@ -406,7 +406,7 @@ Suggested layout (matches the modular boundaries already defined):
 * `src/meta/` (manifest/superblock)
 * `src/repair/`
 * `src/config/` (TOML)
-* `tools/kvdbctl/`
+* `tools/jubectl/`
 * `tests/` (unit tests)
 
 ## 2) Workflow
@@ -467,4 +467,4 @@ Required format:
 7. **Server + CLI**
 
 * Thread pool request handling.
-* `INFO` + `kvdbctl validate/repair`.
+* `INFO` + `jubectl validate/repair`.

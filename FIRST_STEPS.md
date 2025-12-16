@@ -2,7 +2,7 @@
 
 ### Target outcome
 
-A tiny end-to-end local DB you can run via `kvdbctl`:
+A tiny end-to-end local DB you can run via `jubectl`:
 
 * `init` creates a DB directory
 * `set/get/del` work
@@ -18,7 +18,7 @@ No WAL, no transactions, no server, no TTL, no value log.
 
 * CMake builds:
 
-  * `kvdbctl`
+* `jubectl`
   * `unit_tests`
 * FlatBuffers build step (generate C++ from `disk.fbs` and optionally `wire.fbs`)
 * clang-format, clang-tidy configs in repo
@@ -132,20 +132,20 @@ CRC can be computed and stored; for v0.0.1 you can enforce it only in tests (but
 
 ---
 
-## 4) `kvdbctl` CLI (Day 3–4)
+## 4) `jubectl` CLI (Day 3–4)
 
 ### Commands
 
-* `kvdbctl init <db_dir>`
-* `kvdbctl set <db_dir> <key> bytes <hex>`
-* `kvdbctl set <db_dir> <key> string <utf8>`
-* `kvdbctl set <db_dir> <key> int <int64>`
-* `kvdbctl get <db_dir> <key>`
-* `kvdbctl del <db_dir> <key>`
+* `jubectl init <db_dir>`
+* `jubectl set <db_dir> <key> bytes <hex>`
+* `jubectl set <db_dir> <key> string <utf8>`
+* `jubectl set <db_dir> <key> int <int64>`
+* `jubectl get <db_dir> <key>`
+* `jubectl del <db_dir> <key>`
 
 Optional debug:
 
-* `kvdbctl stats <db_dir>` (page count, root id)
+* `jubectl stats <db_dir>` (page count, root id)
 
 **Bytes input**
 
@@ -171,7 +171,7 @@ Not guaranteed (yet):
 
 ## 6) Definition of Done
 
-* `kvdbctl init/set/get/del` works end-to-end
+* `jubectl init/set/get/del` works end-to-end
 * Persistence test passes
 * Unit tests in CI pass (format/lint can be added later, but at least build+tests)
 
@@ -183,5 +183,5 @@ Not guaranteed (yet):
 2. `feat(meta): add manifest and superblock read/write`
 3. `feat(pager): implement fixed-size page io and allocator`
 4. `feat(btree): implement leaf insert/find and root handling`
-5. `feat(cli): add kvdbctl init/set/get/del`
+5. `feat(cli): add jubectl init/set/get/del`
 6. `test: add persistence and overwrite/delete unit tests`

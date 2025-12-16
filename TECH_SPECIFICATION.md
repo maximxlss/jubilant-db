@@ -1,6 +1,6 @@
 ## Appendix A — Recommended Technology Stack for Development
 
-This appendix defines a **concrete, realistic technology stack** suitable for implementing *HybridKV v1* exactly as specified. The stack emphasizes **correctness, performance, debuggability, and long-term maintainability**, without over-engineering or introducing unnecessary runtime dependencies.
+This appendix defines a **concrete, realistic technology stack** suitable for implementing *Jubilant DB v1* exactly as specified. The stack emphasizes **correctness, performance, debuggability, and long-term maintainability**, without over-engineering or introducing unnecessary runtime dependencies.
 
 The choices below are **recommendations**, not requirements, but they are internally consistent and aligned with the spec’s constraints.
 
@@ -227,7 +227,7 @@ Log levels:
 
 ---
 
-## A.10 CLI Tooling (`kvdbctl`)
+## A.10 CLI Tooling (`jubectl`)
 
 ### CLI framework
 
