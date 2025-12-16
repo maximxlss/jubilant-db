@@ -10,7 +10,7 @@ Jubilant DB is a single-node, hybrid memory+disk key–value store. It targets a
 ## At a glance
 
 * **Docs:** A curated index lives in [`docs/README.md`](docs/README.md); product and technical specs remain in `MAIN_SPECIFICATION.md` and `TECH_SPECIFICATION.md`.
-* **Current milestone (v0.0.1):** `jubectl init/set/get/del` flows are implemented through `SimpleStore` with UTF-8 key validation, overwrite semantics, and persistence across clean restarts. Durability now includes monotonic manifest generations, CRC-protected dual superblocks, and a write-ahead log that replays on startup. Coverage comes from unit tests for the B+Tree, pager, manifest/superblock rotation, WAL replay, and the CLI-facing store wrapper. See [`FIRST_STEPS.md`](FIRST_STEPS.md) for acceptance criteria and the tests under `tests/` for evidence.
+* **Current milestone (v0.0.1):** `jubectl init/set/get/del` flows are implemented through `SimpleStore` with UTF-8 key validation, overwrite semantics, and persistence across clean restarts. Durability now includes monotonic manifest generations, CRC-protected dual superblocks, and a write-ahead log that replays on startup. CLI observability is expanding with `stats` and `validate` commands that surface manifest/superblock metadata and checkpoint progress. Coverage comes from unit tests for the B+Tree, pager, manifest/superblock rotation, WAL replay, and the CLI-facing store wrapper. See [`FIRST_STEPS.md`](FIRST_STEPS.md) for acceptance criteria and the tests under `tests/` for evidence.
 * **Build + test quickly:** Configure with `cmake --preset dev-debug`, build via `cmake --build --preset dev-debug`, and run `ctest --preset dev-debug`.
 
 ## CLI quickstart
@@ -22,9 +22,14 @@ jubectl init <db_dir>
 jubectl set <db_dir> <key> <bytes|string|int> <value>
 jubectl get <db_dir> <key>
 jubectl del <db_dir> <key>
+jubectl stats <db_dir>
+jubectl validate <db_dir>
 ```
 
 Keys must be valid UTF-8 and non-empty; values may be raw bytes (hex), UTF-8 strings, or signed 64-bit integers.
+
+* `stats` prints manifest generation/version, page sizing, the active superblock’s root page and checkpoint LSN, and current page/key counts.
+* `validate` replays manifest validation rules and superblock CRC selection to report corruption or missing metadata.
 
 ## Configuration
 
@@ -67,7 +72,7 @@ Short-term steps beyond v0.0.1:
 
 1. **(Done) Storage durability sweep:** Persist manifest generations, dual superblocks with CRC selection, and a write-ahead log replayed at startup.
 2. **(Done) B+Tree + pager completeness:** Page allocation now writes chained leaf pages with CRC-guarded headers, and large values flow through the value log while small values stay inline.
-3. **CLI and validation growth:** Extend `jubectl` with stats and validation commands, wired into the manifest/superblock metadata and storage checkpoints.
+3. **(Done) CLI and validation growth:** `jubectl` now ships `stats` and `validate` commands wired into manifest/superblock metadata and storage checkpoints.
 
 For a longer-horizon view, see [`FUTURE_UPDATES.md`](FUTURE_UPDATES.md).
 

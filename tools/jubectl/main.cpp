@@ -40,7 +40,9 @@ void PrintUsage() {
             << "  init <db_dir>\n"
             << "  set <db_dir> <key> <type> <value>\n"
             << "  get <db_dir> <key>\n"
-            << "  del <db_dir> <key>\n";
+            << "  del <db_dir> <key>\n"
+            << "  stats <db_dir>\n"
+            << "  validate <db_dir>\n";
 }
 
 std::vector<std::byte> ParseHex(std::string_view hex) {
@@ -139,6 +141,38 @@ int HandleDel(DeleteCommand command) {
   return EXIT_SUCCESS;
 }
 
+int HandleStats(std::string_view db_dir) {
+  auto store = jubilant::storage::SimpleStore::Open(db_dir);
+  const auto stats = store.stats();
+
+  std::cout << "Manifest generation: " << stats.manifest.generation << "\n"
+            << "Format: " << stats.manifest.format_major << '.' << stats.manifest.format_minor
+            << "\n"
+            << "Page size: " << stats.manifest.page_size
+            << ", inline threshold: " << stats.manifest.inline_threshold << "\n"
+            << "DB UUID: " << stats.manifest.db_uuid << "\n"
+            << "Superblock generation: " << stats.superblock.generation << "\n"
+            << "Root page id: " << stats.superblock.root_page_id << "\n"
+            << "Last checkpoint LSN: " << stats.superblock.last_checkpoint_lsn << "\n"
+            << "Page count: " << stats.page_count << "\n"
+            << "Key count: " << stats.key_count << "\n";
+
+  return EXIT_SUCCESS;
+}
+
+int HandleValidate(std::string_view db_dir) {
+  const auto result = jubilant::storage::SimpleStore::ValidateOnDisk(db_dir);
+
+  std::cout << "Manifest: " << (result.manifest_result.ok ? "OK" : "FAIL") << " - "
+            << result.manifest_result.message << "\n";
+  std::cout << "Superblock: " << (result.superblock_ok ? "OK" : "FAIL") << " - "
+            << result.superblock_message << "\n";
+  std::cout << "Checkpoint: " << (result.checkpoint_ok ? "OK" : "WARN") << " - "
+            << result.checkpoint_message << "\n";
+
+  return result.ok ? EXIT_SUCCESS : EXIT_FAILURE;
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -180,6 +214,22 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
       }
       return HandleDel({.db_dir = argv[2], .key = argv[3]});
+    }
+
+    if (command == "stats") {
+      if (argc != 3) {
+        PrintUsage();
+        return EXIT_FAILURE;
+      }
+      return HandleStats(argv[2]);
+    }
+
+    if (command == "validate") {
+      if (argc != 3) {
+        PrintUsage();
+        return EXIT_FAILURE;
+      }
+      return HandleValidate(argv[2]);
     }
 
     std::cerr << "Command '" << command << "' not yet implemented.\n";

@@ -107,3 +107,42 @@ TEST(SimpleStoreTest, RoutesLargeValuesThroughValueLogAndReloads) {
   ASSERT_TRUE(found.has_value());
   EXPECT_EQ(std::get<std::string>(found->value), large_value);
 }
+
+TEST(SimpleStoreTest, ReportsStatsWithMetadataAndCounts) {
+  const auto dir = TempDir("jubilant-simple-store-stats");
+  auto store = SimpleStore::Open(dir);
+
+  Record record{};
+  record.value = std::int64_t{7};
+  store.Set("alpha", record);
+  record.value = std::string{"bravo"};
+  store.Set("bravo", record);
+
+  const auto stats = store.stats();
+  EXPECT_FALSE(stats.manifest.db_uuid.empty());
+  EXPECT_GT(stats.manifest.page_size, 0U);
+  EXPECT_GE(stats.superblock.root_page_id, 0U);
+  EXPECT_GE(stats.page_count, 1U);
+  EXPECT_EQ(stats.key_count, 2U);
+}
+
+TEST(SimpleStoreTest, ValidateOnDiskDetectsMissingManifest) {
+  const auto dir = TempDir("jubilant-simple-store-validation-missing");
+  const auto report = SimpleStore::ValidateOnDisk(dir);
+
+  EXPECT_FALSE(report.ok);
+  EXPECT_FALSE(report.manifest_result.ok);
+  EXPECT_FALSE(report.superblock_ok);
+}
+
+TEST(SimpleStoreTest, ValidateOnDiskSucceedsAfterOpen) {
+  const auto dir = TempDir("jubilant-simple-store-validation-ok");
+  auto store = SimpleStore::Open(dir);
+  store.Sync();
+
+  const auto report = SimpleStore::ValidateOnDisk(dir);
+  EXPECT_TRUE(report.ok);
+  EXPECT_TRUE(report.manifest_result.ok);
+  EXPECT_TRUE(report.superblock_ok);
+  EXPECT_TRUE(report.checkpoint_ok);
+}

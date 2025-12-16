@@ -2,6 +2,7 @@
 
 #include <random>
 #include <stdexcept>
+#include <string>
 
 namespace jubilant::storage {
 
@@ -58,6 +59,10 @@ SimpleStore SimpleStore::Open(const std::filesystem::path& db_dir) {
 
   SimpleStore store(db_dir, *manifest, superblock, std::move(pager), std::move(value_log));
   superblock_store.WriteNext(store.superblock_);
+  const auto refreshed_superblock = superblock_store.LoadActive();
+  if (refreshed_superblock.has_value()) {
+    store.superblock_ = *refreshed_superblock;
+  }
   return store;
 }
 
@@ -98,6 +103,55 @@ void SimpleStore::Sync() {
 
 std::uint64_t SimpleStore::size() const noexcept {
   return tree_.size();
+}
+
+SimpleStore::Stats SimpleStore::stats() const {
+  Stats stats{};
+  const auto manifest = manifest_store_.Load();
+  stats.manifest = manifest.value_or(manifest_);
+  stats.superblock = superblock_store_.LoadActive().value_or(superblock_);
+  stats.page_count = pager_.page_count();
+  stats.key_count = tree_.size();
+  return stats;
+}
+
+SimpleStore::ValidationReport SimpleStore::ValidateOnDisk(const std::filesystem::path& db_dir) {
+  ValidationReport report{};
+
+  meta::ManifestStore manifest_store(db_dir);
+  const auto manifest = manifest_store.Load();
+  if (manifest.has_value()) {
+    report.has_manifest = true;
+    report.manifest_result = meta::ManifestStore::Validate(*manifest);
+    if (report.manifest_result.message.empty()) {
+      report.manifest_result.message = "MANIFEST validated";
+    }
+  } else {
+    report.manifest_result.ok = false;
+    report.manifest_result.message = "MANIFEST missing or invalid";
+  }
+
+  meta::SuperBlockStore superblock_store(db_dir);
+  const auto superblock = superblock_store.LoadActive();
+  if (superblock.has_value()) {
+    report.superblock_ok = true;
+    report.superblock_message = "Superblock generation " + std::to_string(superblock->generation) +
+                                ", root_page_id=" + std::to_string(superblock->root_page_id);
+
+    report.checkpoint_ok = true;
+    if (superblock->last_checkpoint_lsn == 0) {
+      report.checkpoint_message = "No checkpoint recorded (last_checkpoint_lsn=0)";
+    } else {
+      report.checkpoint_message =
+          "Last checkpoint LSN=" + std::to_string(superblock->last_checkpoint_lsn);
+    }
+  } else {
+    report.superblock_message = "No valid superblock found (CRC failure or missing files)";
+    report.checkpoint_message = "Checkpoint metadata unavailable";
+  }
+
+  report.ok = report.has_manifest && report.manifest_result.ok && report.superblock_ok;
+  return report;
 }
 
 } // namespace jubilant::storage

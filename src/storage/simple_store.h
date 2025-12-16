@@ -24,6 +24,27 @@ public:
 
   [[nodiscard]] std::uint64_t size() const noexcept;
 
+  struct Stats {
+    meta::ManifestRecord manifest;
+    meta::SuperBlock superblock;
+    std::uint64_t page_count{0};
+    std::uint64_t key_count{0};
+  };
+
+  [[nodiscard]] Stats stats() const;
+
+  struct ValidationReport {
+    bool ok{false};
+    meta::ManifestValidationResult manifest_result{};
+    bool has_manifest{false};
+    bool superblock_ok{false};
+    std::string superblock_message;
+    bool checkpoint_ok{false};
+    std::string checkpoint_message;
+  };
+
+  [[nodiscard]] static ValidationReport ValidateOnDisk(const std::filesystem::path& db_dir);
+
 private:
   SimpleStore(std::filesystem::path db_dir, meta::ManifestRecord manifest,
               meta::SuperBlock superblock, Pager pager, vlog::ValueLog value_log);
