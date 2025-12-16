@@ -36,7 +36,7 @@ void Server::Start() {
     };
 
     auto worker = std::make_unique<Worker>("worker-" + std::to_string(i), receiver_, lock_manager_,
-                                           btree_, btree_mutex_, on_complete);
+                                           btree_.value(), btree_mutex_, on_complete);
     worker->Start();
     workers_.push_back(std::move(worker));
   }

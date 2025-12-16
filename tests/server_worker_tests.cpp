@@ -21,6 +21,8 @@ using jubilant::server::TransactionReceiver;
 using jubilant::server::TransactionResult;
 using jubilant::server::Worker;
 using jubilant::storage::btree::Record;
+using jubilant::storage::vlog::ValueLog;
+using jubilant::storage::Pager;
 using jubilant::txn::Operation;
 using jubilant::txn::OperationType;
 using jubilant::txn::TransactionRequest;
@@ -47,7 +49,12 @@ TEST(TransactionReceiverTest, UnblocksOnStop) {
 TEST(WorkerTest, ProcessesOperationsAndEmitsResults) {
   TransactionReceiver receiver{};
   LockManager lock_manager{};
-  jubilant::storage::btree::BTree btree{};
+  const auto dir = std::filesystem::temp_directory_path() / "jubilant-worker-btree";
+  std::filesystem::remove_all(dir);
+  Pager pager = Pager::Open(dir / "data.pages", jubilant::storage::kDefaultPageSize);
+  ValueLog vlog(dir / "vlog");
+  jubilant::storage::btree::BTree btree(jubilant::storage::btree::BTree::Config{
+      .pager = &pager, .value_log = &vlog, .inline_threshold = 128U, .root_hint = 0});
   std::shared_mutex btree_mutex;
 
   std::mutex results_mutex;
