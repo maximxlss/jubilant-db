@@ -2,6 +2,7 @@
 
 #include "storage/btree/btree.h"
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -9,11 +10,11 @@
 
 namespace jubilant::txn {
 
-enum class TransactionState { kPending, kCommitted, kAborted };
+enum class TransactionState : std::uint8_t { kPending, kCommitted, kAborted };
 
 class TransactionContext {
 public:
-  explicit TransactionContext(std::uint64_t id);
+  explicit TransactionContext(std::uint64_t transaction_id);
 
   [[nodiscard]] std::uint64_t id() const noexcept;
   [[nodiscard]] TransactionState state() const noexcept;

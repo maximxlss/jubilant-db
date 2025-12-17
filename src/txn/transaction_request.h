@@ -9,7 +9,7 @@
 
 namespace jubilant::txn {
 
-enum class OperationType { kGet, kSet, kDelete };
+enum class OperationType : std::uint8_t { kGet, kSet, kDelete };
 
 struct Operation {
   OperationType type{OperationType::kGet};

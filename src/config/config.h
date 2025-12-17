@@ -12,7 +12,7 @@ struct Config {
   std::uint32_t page_size{4096};
   std::uint32_t inline_threshold{1024};
   std::uint32_t group_commit_max_latency_ms{5};
-  std::uint64_t cache_bytes{64 * 1024 * 1024};
+  std::uint64_t cache_bytes{64ULL * 1024ULL * 1024ULL};
   std::string listen_address{"127.0.0.1"};
   std::uint16_t listen_port{6767};
 };

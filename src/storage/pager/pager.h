@@ -10,7 +10,7 @@ namespace jubilant::storage {
 
 constexpr std::uint32_t kDefaultPageSize = 4096;
 
-enum class PageType : std::uint16_t {
+enum class PageType : std::uint8_t {
   kUnknown = 0,
   kLeaf = 1,
   kInternal = 2,

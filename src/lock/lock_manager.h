@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <mutex>
 #include <shared_mutex>
 #include <string>
@@ -7,7 +8,7 @@
 
 namespace jubilant::lock {
 
-enum class LockMode { kShared, kExclusive };
+enum class LockMode : std::uint8_t { kShared, kExclusive };
 
 class LockManager {
 public:
