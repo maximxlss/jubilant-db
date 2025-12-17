@@ -45,6 +45,9 @@ TEST(SuperBlockStoreTest, PicksNewestValidSuperblock) {
 
   const auto active = store.LoadActive();
   ASSERT_TRUE(active.has_value());
+  if (!active.has_value()) {
+    return;
+  }
   EXPECT_EQ(active->generation, 2U);
   EXPECT_EQ(active->root_page_id, 200U);
 }
@@ -65,6 +68,9 @@ TEST(SuperBlockStoreTest, FallsBackWhenNewerCrcCorrupted) {
 
   const auto active = store.LoadActive();
   ASSERT_TRUE(active.has_value());
+  if (!active.has_value()) {
+    return;
+  }
   EXPECT_EQ(active->generation, 1U);
   EXPECT_EQ(active->root_page_id, 10U);
 }
