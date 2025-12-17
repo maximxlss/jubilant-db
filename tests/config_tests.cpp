@@ -8,7 +8,8 @@
 namespace jubilant::config {
 namespace {
 
-std::filesystem::path WriteTempConfig(const std::filesystem::path& name, std::string_view contents) {
+std::filesystem::path WriteTempConfig(const std::filesystem::path& name,
+                                      std::string_view contents) {
   const auto temp_dir = std::filesystem::temp_directory_path() / "jubildb_config_tests";
   std::filesystem::create_directories(temp_dir);
 

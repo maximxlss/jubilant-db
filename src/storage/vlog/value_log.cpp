@@ -76,7 +76,8 @@ std::optional<std::vector<std::byte>> ValueLog::Read(const SegmentPointer& point
   }
 
   std::vector<std::byte> data(header.length);
-  input_stream.read(reinterpret_cast<char*>(data.data()), static_cast<std::streamsize>(header.length));
+  input_stream.read(reinterpret_cast<char*>(data.data()),
+                    static_cast<std::streamsize>(header.length));
   if (!input_stream.good()) {
     return std::nullopt;
   }
