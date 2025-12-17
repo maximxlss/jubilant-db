@@ -5,18 +5,40 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Status: Active Scaffolding](https://img.shields.io/badge/status-active%20scaffolding-orange)](MAIN_SPECIFICATION.md)
 
-Jubilant DB is a single-node, hybrid memory+disk key–value store. It targets a B+Tree plus WAL/value-log storage engine, strict two-phase locking, and a `jubectl` CLI that exercises initialization and CRUD paths end to end.
+Jubilant DB is a single-node, hybrid memory+disk key–value store built around a **B+Tree + WAL + value log** storage engine, **strict two-phase locking**, and a **C-compatible protocol**. The project aims to feel like a production system even while it grows: clear specs, predictable builds, and test coverage that tracks every milestone.
 
-## At a glance
+## What you get today
 
-* **Docs:** A curated index lives in [`docs/README.md`](docs/README.md); product and technical specs remain in `MAIN_SPECIFICATION.md` and `TECH_SPECIFICATION.md`.
-* **Current milestone (v0.0.1):** `jubectl init/set/get/del` flows are implemented through `SimpleStore` with UTF-8 key validation, overwrite semantics, and persistence across clean restarts. Durability now includes monotonic manifest generations, CRC-protected dual superblocks, and a write-ahead log that replays on startup. CLI observability is expanding with `stats` and `validate` commands that surface manifest/superblock metadata and checkpoint progress. Coverage comes from unit tests for the B+Tree, pager, manifest/superblock rotation, WAL replay, and the CLI-facing store wrapper. See [`FIRST_STEPS.md`](FIRST_STEPS.md) for acceptance criteria and the tests under `tests/` for evidence.
-* **Build + test quickly:** Configure with `cmake --preset dev-debug`, build via `cmake --build --preset dev-debug`, and run `ctest --preset dev-debug`.
-* **Server runtime scaffolding:** A bounded transaction receiver, worker pool, and completion queue live under `src/server/` so wire-protocol work can focus on dispatch without reworking lifecycle management. See [`docs/server-runtime.md`](docs/server-runtime.md).
+- **CLI-first store:** `jubectl init/set/get/del` exercise the storage engine end to end with UTF-8 key validation and overwrite semantics.
+- **Durability guardrails:** Monotonic MANIFEST generations, dual superblocks with CRC selection, and a WAL replayed on startup.
+- **Early observability:** `jubectl stats` and `jubectl validate` surface manifest/superblock metadata, checkpoint progress, and corruption checks.
+- **Server scaffolding:** The transaction receiver, worker pool, and completion queue under `src/server/` let wire-protocol work focus on dispatch and correctness.
 
-## CLI quickstart
+Current coverage for v0.0.1 acceptance criteria lives in [`FIRST_STEPS.md`](FIRST_STEPS.md), with tests under `tests/` exercising CRUD, persistence, pager IO, and WAL replay.
 
-The `jubectl` tool exercises the v0.0.1 surface area:
+## Quickstart
+
+1. Configure a Debug build tree:
+
+   ```sh
+   cmake --preset dev-debug
+   ```
+
+2. Build the CLI, libraries, and tests:
+
+   ```sh
+   cmake --build --preset dev-debug
+   ```
+
+3. Run the test suite:
+
+   ```sh
+   ctest --preset dev-debug
+   ```
+
+### Run the CLI
+
+Use the shipped `jubectl` to create and interact with a local database directory:
 
 ```sh
 jubectl init <db_dir>
@@ -27,14 +49,11 @@ jubectl stats <db_dir>
 jubectl validate <db_dir>
 ```
 
-Keys must be valid UTF-8 and non-empty; values may be raw bytes (hex), UTF-8 strings, or signed 64-bit integers.
+Keys must be non-empty UTF-8 strings. Values may be raw bytes (hex), UTF-8 strings, or signed 64-bit integers. `stats` prints manifest/superblock metadata and checkpoint state; `validate` replays manifest and superblock validation to flag corruption.
 
-* `stats` prints manifest generation/version, page sizing, the active superblock’s root page and checkpoint LSN, and current page/key counts.
-* `validate` replays manifest validation rules and superblock CRC selection to report corruption or missing metadata.
+### Prototype Python client (v0.0.2 envelope)
 
-## Python client (v0.0.2 prototype)
-
-The `tools/clients/python/jubilant_client.py` module speaks the v0.0.2 JSON envelope with a length prefix as defined in [`docs/txn-wire-v0.0.2.md`](docs/txn-wire-v0.0.2.md). A thin CLI wrapper exercises the helpers:
+The `tools/clients/python/jubilant_client.py` module speaks the length-prefixed JSON envelope defined in [`docs/txn-wire-v0.0.2.md`](docs/txn-wire-v0.0.2.md). A thin CLI wrapper is available:
 
 ```sh
 python tools/clients/python/jubectl_client.py --host 127.0.0.1 --port 6767 set alpha string bravo
@@ -42,19 +61,17 @@ python tools/clients/python/jubectl_client.py --host 127.0.0.1 --port 6767 get a
 python tools/clients/python/jubectl_client.py --host 127.0.0.1 --port 6767 del alpha
 ```
 
-Byte values are supplied as hex strings and base64-encoded on the wire; the CLI accepts an optional `--txn-id` for deterministic testing.
+Byte values are passed as hex on the CLI and base64-encoded on the wire. An optional `--txn-id` supports deterministic testing.
 
 ## Configuration
 
-`jubildb` instances read TOML configuration files through `ConfigLoader` with sensible defaults for every field except the
-database path. A minimal configuration contains only the path:
+`jubildb` processes read TOML configuration files through `ConfigLoader` with defaults for every field except the database path. A minimal config is only a path:
 
 ```toml
 db_path = "/var/lib/jubildb"
 ```
 
-Additional settings are optional and validated on load (non-zero page size, inline threshold within the page, positive cache
-size, and a listen port within `1-65535`):
+Optional settings are validated on load (non-zero page size, inline threshold within the page, positive cache size, listen port within `1-65535`):
 
 ```toml
 db_path = "./data"
@@ -66,45 +83,37 @@ listen_address = "0.0.0.0"
 listen_port = 7777
 ```
 
-Defaults mirror the current implementation: 4 KiB pages, 1 KiB inline threshold, a 64 MiB cache, 5 ms max group-commit latency,
-and `127.0.0.1:6767` for the listening socket.
+Defaults today: 4 KiB pages, 1 KiB inline threshold, 64 MiB cache, 5 ms max group-commit latency, and a listener on `127.0.0.1:6767`.
 
-## Build + contribute
+## Documentation map
 
-The repository standardizes on CMake presets (3.25+ with Ninja recommended):
+- **Developer docs index:** [`docs/README.md`](docs/README.md)
+- **Product/storage spec:** [`MAIN_SPECIFICATION.md`](MAIN_SPECIFICATION.md)
+- **Technical stack:** [`TECH_SPECIFICATION.md`](TECH_SPECIFICATION.md)
+- **Server runtime scaffolding:** [`docs/server-runtime.md`](docs/server-runtime.md)
+- **Server roadmap + milestones:** [`docs/server-roadmap.md`](docs/server-roadmap.md) and [`FUTURE_UPDATES.md`](FUTURE_UPDATES.md)
 
-1. Configure a Debug tree with tests enabled: `cmake --preset dev-debug`
-2. Build artifacts and utilities: `cmake --build --preset dev-debug`
-3. Run tests: `ctest --preset dev-debug`
+## Build and contribution workflow
 
-Before opening a pull request, run `cmake --build --preset dev-debug --target clang-format` to keep diffs clean. CI enforces formatting but will fail instead of auto-fixing.
-
-Linting-friendly presets exist (`dev-debug-tidy`) and run clang-tidy across every target (library, CLI, and tests) during compilation:
-
-```
-cmake --preset dev-debug-tidy
-cmake --build --preset dev-debug-tidy
-```
-
-`clang-format`/`clang-tidy` targets remain available from any configured build tree when you need a single-tool pass.
-
-## Roadmap
-
-Short-term steps beyond v0.0.1:
-
-1. **(Done) Storage durability sweep:** Persist manifest generations, dual superblocks with CRC selection, and a write-ahead log replayed at startup.
-2. **(Done) B+Tree + pager completeness:** Page allocation now writes chained leaf pages with CRC-guarded headers, and large values flow through the value log while small values stay inline.
-3. **(Done) CLI and validation growth:** `jubectl` now ships `stats` and `validate` commands wired into manifest/superblock metadata and storage checkpoints.
-
-For a longer-horizon view, see [`FUTURE_UPDATES.md`](FUTURE_UPDATES.md).
+- Use the CMake presets in `CMakePresets.json` (`dev-debug` for daily work, `dev-debug-tidy` for linting).
+- Format before committing: `cmake --build --preset dev-debug --target clang-format`.
+- `clang-tidy` diagnostics must be addressed; presets include tidy-friendly options.
+- Conventional Commits are required for commit messages.
+- See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contributor expectations and developer setup tips.
 
 ## Repository layout
 
-* `schemas/` — FlatBuffers definitions for wire, WAL, and disk formats.
-* `src/` — core engine sources (pager, B+Tree, WAL, TTL, cache, server runtime).
-* `tools/jubectl/` — CLI sources for `jubectl`.
-* `tests/` — unit and integration tests.
-* `cmake/` — shared CMake helpers/toolchain settings.
+- `schemas/` — FlatBuffers definitions for wire, WAL, and disk formats.
+- `src/` — Engine sources (pager, B+Tree, WAL, TTL, cache, server runtime).
+- `tools/` — CLI (`tools/jubectl/`) and client prototypes (`tools/clients/python/`).
+- `tests/` — Unit and integration coverage.
+- `docs/` — Documentation index and topic guides.
+- `cmake/` — Shared CMake helpers and toolchain settings.
+
+## Roadmap snapshot
+
+- **v0.0.1 (in progress):** CLI-driven storage with WAL-backed durability and validation utilities. See [`FIRST_STEPS.md`](FIRST_STEPS.md) for the acceptance checklist.
+- **Server buildout:** The runtime scaffolding is staged; wire protocol, TTL enforcement, and transactional flows are the next focus. Longer-horizon work lives in [`FUTURE_UPDATES.md`](FUTURE_UPDATES.md).
 
 ## License
 
