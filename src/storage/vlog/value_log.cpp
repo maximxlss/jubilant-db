@@ -59,25 +59,25 @@ std::optional<std::vector<std::byte>> ValueLog::Read(const SegmentPointer& point
     return std::nullopt;
   }
 
-  std::ifstream in(segment_path, std::ios::binary);
-  if (!in) {
+  std::ifstream input_stream(segment_path, std::ios::binary);
+  if (!input_stream) {
     return std::nullopt;
   }
 
-  in.seekg(static_cast<std::streamoff>(pointer.offset));
-  if (!in.good()) {
+  input_stream.seekg(static_cast<std::streamoff>(pointer.offset));
+  if (!input_stream.good()) {
     return std::nullopt;
   }
 
   RecordHeader header{};
-  in.read(reinterpret_cast<char*>(&header), sizeof(header));
-  if (!in.good()) {
+  input_stream.read(reinterpret_cast<char*>(&header), sizeof(header));
+  if (!input_stream.good()) {
     return std::nullopt;
   }
 
   std::vector<std::byte> data(header.length);
-  in.read(reinterpret_cast<char*>(data.data()), static_cast<std::streamsize>(header.length));
-  if (!in.good()) {
+  input_stream.read(reinterpret_cast<char*>(data.data()), static_cast<std::streamsize>(header.length));
+  if (!input_stream.good()) {
     return std::nullopt;
   }
 
