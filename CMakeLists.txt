@@ -179,9 +179,42 @@ target_compile_options(jubildb_server
     -Wextra
     -Wpedantic
 )
-if(JUBILANT_CLANG_TIDY_COMMAND)
-  set_property(TARGET jubildb_server PROPERTY CXX_CLANG_TIDY "${JUBILANT_CLANG_TIDY_COMMAND}")
-endif()
+jubildb_enable_clang_tidy(jubildb_server)
+
+# Python client artifacts -----------------------------------------------------
+set(JUBILANT_PYTHON_CLIENT_SCRIPTS
+  ${CMAKE_CURRENT_SOURCE_DIR}/tools/clients/python/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/tools/clients/python/echo_stub.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/tools/clients/python/framing_probe.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/tools/clients/python/jubilant_client.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/tools/clients/python/jubectl_client.py
+)
+
+set(JUBILANT_PYTHON_CLIENT_OUTPUT_DIR
+    ${CMAKE_CURRENT_BINARY_DIR}/python_clients)
+set(JUBILANT_PYTHON_CLIENT_OUTPUTS)
+
+foreach(script ${JUBILANT_PYTHON_CLIENT_SCRIPTS})
+  get_filename_component(script_name ${script} NAME)
+  set(script_output ${JUBILANT_PYTHON_CLIENT_OUTPUT_DIR}/${script_name})
+
+  add_custom_command(
+    OUTPUT ${script_output}
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            ${JUBILANT_PYTHON_CLIENT_OUTPUT_DIR}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${script} ${script_output}
+    DEPENDS ${script}
+    COMMENT "Copying ${script_name} into python client bundle"
+    VERBATIM
+  )
+
+  list(APPEND JUBILANT_PYTHON_CLIENT_OUTPUTS ${script_output})
+endforeach()
+
+add_custom_target(python_clients ALL
+  DEPENDS ${JUBILANT_PYTHON_CLIENT_OUTPUTS}
+  COMMENT "Stage Python client scripts in ${JUBILANT_PYTHON_CLIENT_OUTPUT_DIR}"
+)
 
 # Tests ------------------------------------------------------------------------
 if(JUBILANT_BUILD_TESTS)

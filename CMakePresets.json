@@ -69,6 +69,24 @@
       "configurePreset": "dev-release-tidy"
     },
     {
+      "name": "dev-debug-server",
+      "displayName": "Build Debug server and Python clients",
+      "configurePreset": "dev-debug",
+      "targets": [
+        "jubildb_server",
+        "python_clients"
+      ]
+    },
+    {
+      "name": "dev-release-server",
+      "displayName": "Build Release server and Python clients",
+      "configurePreset": "dev-release",
+      "targets": [
+        "jubildb_server",
+        "python_clients"
+      ]
+    },
+    {
       "name": "dev-debug-tests",
       "displayName": "Build Debug tests",
       "configurePreset": "dev-debug",

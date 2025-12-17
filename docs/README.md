@@ -18,8 +18,8 @@ This index is the entry point for engineers and contributors. It groups the spec
 
 ## Clients and tooling
 * **jubectl remote mode:** `jubectl --remote <host:port>` now speaks the same length-prefixed JSON envelope for `set/get/del` plus a `txn` command that loads a JSON request (or `operations` array) from disk. Provide `--txn-id` to pin the transaction id and `--timeout-ms` to tune socket timeouts.
-* **Server bootstrap:** `jubildb_server` reads a TOML config, initializes storage, and starts the network adapter + worker pool. Build via `cmake --build --preset dev-debug --target jubildb_server` and launch with `./build/dev-debug/jubildb_server --config ./server.toml [--workers N]`.
-- **Python client prototype:** [`tools/clients/python/`](../tools/clients/python) ships `jubilant_client.py` and the CLI wrapper `jubectl_client.py` for the v0.0.2 envelope. Bytes are provided as hex and base64-encoded on the wire.
+* **Server bootstrap:** `jubildb_server` reads a TOML config, initializes storage, and starts the network adapter + worker pool. Build via `cmake --build --preset dev-debug-server` and launch with `./build/dev-debug/jubildb_server --config ./server.toml [--workers N]`.
+- **Python client prototype:** [`tools/clients/python/`](../tools/clients/python) ships `jubilant_client.py` and the CLI wrapper `jubectl_client.py` for the v0.0.2 envelope. Bytes are provided as hex and base64-encoded on the wire. The `python_clients` CMake target (included in all build presets) stages copies under `build/<preset>/python_clients/` for packaging and integration tests.
 - **CLI usage:** The top-level [`README.md`](../README.md) documents `jubectl init/set/get/del/stats/validate` and links to configuration options.
 
 ## Milestones and acceptance
