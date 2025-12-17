@@ -1,5 +1,7 @@
 #include "config/config.h"
 
+#include "storage/pager/pager.h"
+
 #include <limits>
 #include <toml++/toml.h>
 #include <utility>
@@ -64,7 +66,12 @@ std::optional<Config> ConfigLoader::LoadFromFile(const std::filesystem::path& pa
     return std::nullopt;
   }
 
-  if (cfg.inline_threshold == 0 || cfg.inline_threshold >= cfg.page_size) {
+  const auto payload_size = storage::Pager::PayloadSizeFor(cfg.page_size);
+  if (payload_size == 0) {
+    return std::nullopt;
+  }
+
+  if (cfg.inline_threshold == 0 || cfg.inline_threshold >= payload_size) {
     return std::nullopt;
   }
 

@@ -25,9 +25,18 @@ struct Page {
 };
 
 class Pager {
+  struct PageHeader;
+
 public:
   static Pager Open(const std::filesystem::path& data_path,
                     std::uint32_t page_size = kDefaultPageSize);
+
+  [[nodiscard]] static constexpr std::uint32_t HeaderSize() noexcept {
+    return sizeof(PageHeader);
+  }
+  [[nodiscard]] static constexpr std::uint32_t PayloadSizeFor(std::uint32_t page_size) noexcept {
+    return page_size > HeaderSize() ? page_size - HeaderSize() : 0;
+  }
 
   std::uint64_t Allocate(PageType type);
   void Write(const Page& page);

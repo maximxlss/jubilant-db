@@ -16,7 +16,7 @@ namespace jubilant::storage {
 
 Pager::Pager(PagerConfig config)
     : data_path_(std::move(config.data_path)), page_size_(config.page_size),
-      payload_size_(config.page_size - sizeof(PageHeader)), next_page_id_(config.next_page),
+      payload_size_(PayloadSizeFor(config.page_size)), next_page_id_(config.next_page),
       file_descriptor_(config.file_descriptor) {}
 
 Pager::Pager(Pager&& other) noexcept
@@ -49,7 +49,7 @@ Pager::~Pager() {
 }
 
 Pager Pager::Open(const std::filesystem::path& data_path, std::uint32_t page_size) {
-  if (page_size <= sizeof(PageHeader)) {
+  if (page_size <= HeaderSize()) {
     throw std::invalid_argument("page_size too small for header");
   }
 
@@ -105,8 +105,8 @@ void Pager::Write(const Page& page) {
   header.lsn = page.lsn;
   header.crc = ComputeCrc(header, page.payload);
 
-  std::memcpy(buffer.data(), &header, sizeof(PageHeader));
-  std::memcpy(buffer.data() + sizeof(PageHeader), page.payload.data(), payload_size_);
+  std::memcpy(buffer.data(), &header, HeaderSize());
+  std::memcpy(buffer.data() + HeaderSize(), page.payload.data(), payload_size_);
 
   const auto offset = static_cast<off_t>(OffsetFor(page.id));
   const auto expected_size = std::ssize(buffer);
@@ -160,21 +160,21 @@ std::uint32_t Pager::ComputeCrc(const PageHeader& header, const std::vector<std:
   PageHeader header_copy = header;
   header_copy.crc = 0;
 
-  std::vector<std::byte> crc_buffer(sizeof(PageHeader) + payload.size());
-  std::memcpy(crc_buffer.data(), &header_copy, sizeof(PageHeader));
-  std::memcpy(crc_buffer.data() + sizeof(PageHeader), payload.data(), payload.size());
+  std::vector<std::byte> crc_buffer(HeaderSize() + payload.size());
+  std::memcpy(crc_buffer.data(), &header_copy, HeaderSize());
+  std::memcpy(crc_buffer.data() + HeaderSize(), payload.data(), payload.size());
   return ComputeCrc32(std::span<const std::byte>(crc_buffer.data(), crc_buffer.size()));
 }
 
 Page Pager::ParsePage(const std::vector<std::byte>& buffer, std::uint32_t payload_size) {
-  if (buffer.size() < sizeof(PageHeader) + payload_size) {
+  if (buffer.size() < HeaderSize() + payload_size) {
     throw std::runtime_error("Corrupt page buffer");
   }
 
   PageHeader header{};
-  std::memcpy(&header, buffer.data(), sizeof(PageHeader));
+  std::memcpy(&header, buffer.data(), HeaderSize());
   std::vector<std::byte> payload(payload_size);
-  std::memcpy(payload.data(), buffer.data() + sizeof(PageHeader), payload_size);
+  std::memcpy(payload.data(), buffer.data() + HeaderSize(), payload_size);
 
   if (ComputeCrc(header, payload) != header.crc) {
     throw std::runtime_error("Page checksum mismatch");

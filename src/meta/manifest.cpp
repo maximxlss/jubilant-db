@@ -1,6 +1,7 @@
 #include "meta/manifest.h"
 
 #include "disk_generated.h"
+#include "storage/pager/pager.h"
 
 #include <filesystem>
 #include <flatbuffers/flatbuffers.h>
@@ -81,6 +82,7 @@ std::optional<ManifestRecord> ManifestStore::Load() const {
 ManifestValidationResult ManifestStore::Validate(const ManifestRecord& manifest) {
   ManifestValidationResult result{};
   result.ok = true;
+  const auto payload_size = storage::Pager::PayloadSizeFor(manifest.page_size);
 
   if (manifest.generation == 0) {
     result.ok = false;
@@ -91,9 +93,12 @@ ManifestValidationResult ManifestStore::Validate(const ManifestRecord& manifest)
   } else if (manifest.page_size == 0) {
     result.ok = false;
     result.message = "page_size must be non-zero";
-  } else if (manifest.inline_threshold == 0 || manifest.inline_threshold >= manifest.page_size) {
+  } else if (payload_size == 0) {
     result.ok = false;
-    result.message = "inline_threshold must be within (0, page_size)";
+    result.message = "page_size must exceed pager header size";
+  } else if (manifest.inline_threshold == 0 || manifest.inline_threshold >= payload_size) {
+    result.ok = false;
+    result.message = "inline_threshold must be within (0, payload_size)";
   } else if (manifest.db_uuid.empty()) {
     result.ok = false;
     result.message = "db_uuid must be populated";
