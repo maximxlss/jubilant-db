@@ -105,6 +105,10 @@ TEST(SimpleStoreTest, RoutesLargeValuesThroughValueLogAndReloads) {
   auto reopened = SimpleStore::Open(dir);
   const auto found = reopened.Get("big");
   ASSERT_TRUE(found.has_value());
+  if (!found.has_value()) {
+    return;
+  }
+
   EXPECT_EQ(std::get<std::string>(found->value), large_value);
 }
 

@@ -1,5 +1,6 @@
 #include "server/server.h"
 
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -29,6 +30,12 @@ void Server::Start() {
     return;
   }
 
+  if (!btree_) {
+    throw std::logic_error("B-tree not initialized");
+  }
+
+  auto& btree = *btree_;
+
   for (std::size_t i = 0; i < worker_count_; ++i) {
     auto on_complete = [this](TransactionResult result) {
       std::scoped_lock guard(results_mutex_);
@@ -36,7 +43,7 @@ void Server::Start() {
     };
 
     auto worker = std::make_unique<Worker>("worker-" + std::to_string(i), receiver_, lock_manager_,
-                                           btree_.value(), btree_mutex_, on_complete);
+                                           btree, btree_mutex_, on_complete);
     worker->Start();
     workers_.push_back(std::move(worker));
   }

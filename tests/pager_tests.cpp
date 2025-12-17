@@ -88,5 +88,5 @@ TEST(PagerTest, DetectsChecksumMismatch) {
   corrupt.put(static_cast<char>(0xFF));
   corrupt.flush();
 
-  EXPECT_THROW(pager.Read(page_id), std::runtime_error);
+  EXPECT_THROW(static_cast<void>(pager.Read(page_id)), std::runtime_error);
 }

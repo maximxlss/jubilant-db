@@ -138,7 +138,7 @@ WalRecord WalManager::FromFlatBuffer(const wal_fb::WalRecord& fb_record) {
   return record;
 }
 
-std::optional<WalRecord> WalManager::ReadNext(std::ifstream& stream) const {
+std::optional<WalRecord> WalManager::ReadNext(std::ifstream& stream) {
   std::uint32_t size = 0;
   stream.read(reinterpret_cast<char*>(&size), sizeof(size));
   if (!stream) {
@@ -221,7 +221,7 @@ bool WalManager::PersistRecord(const WalRecord& record) {
                               upsert_offset, tombstone_offset, marker_offset, crc);
   builder.Finish(wal_offset, wal_fb::WalRecordIdentifier());
 
-  const auto buffer_pointer = builder.GetBufferPointer();
+  auto* const buffer_pointer = builder.GetBufferPointer();
   const auto buffer_size = builder.GetSize();
 
   std::ofstream out(wal_path_, std::ios::binary | std::ios::app);
