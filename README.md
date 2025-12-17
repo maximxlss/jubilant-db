@@ -32,6 +32,18 @@ Keys must be valid UTF-8 and non-empty; values may be raw bytes (hex), UTF-8 str
 * `stats` prints manifest generation/version, page sizing, the active superblock’s root page and checkpoint LSN, and current page/key counts.
 * `validate` replays manifest validation rules and superblock CRC selection to report corruption or missing metadata.
 
+## Python client (v0.0.2 prototype)
+
+The `tools/clients/python/jubilant_client.py` module speaks the v0.0.2 JSON envelope with a length prefix as defined in [`docs/txn-wire-v0.0.2.md`](docs/txn-wire-v0.0.2.md). A thin CLI wrapper exercises the helpers:
+
+```sh
+python tools/clients/python/jubectl_client.py --host 127.0.0.1 --port 6767 set alpha string bravo
+python tools/clients/python/jubectl_client.py --host 127.0.0.1 --port 6767 get alpha
+python tools/clients/python/jubectl_client.py --host 127.0.0.1 --port 6767 del alpha
+```
+
+Byte values are supplied as hex strings and base64-encoded on the wire; the CLI accepts an optional `--txn-id` for deterministic testing.
+
 ## Configuration
 
 `jubildb` instances read TOML configuration files through `ConfigLoader` with sensible defaults for every field except the
