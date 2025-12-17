@@ -53,7 +53,7 @@ private:
   meta::ManifestRecord manifest_record_{};
   meta::SuperBlock superblock_{};
 
-  TransactionReceiver receiver_{};
+  TransactionReceiver receiver_;
   std::shared_mutex btree_mutex_;
 
   std::vector<std::unique_ptr<Worker>> workers_;

@@ -13,7 +13,7 @@
 
 namespace jubilant::storage::btree {
 
-enum class ValueType {
+enum class ValueType : std::uint8_t {
   kBytes,
   kString,
   kInt64,
