@@ -5,16 +5,20 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Status: Active Scaffolding](https://img.shields.io/badge/status-active%20scaffolding-orange)](MAIN_SPECIFICATION.md)
 
-Jubilant DB is a single-node, hybrid memory+disk key–value store built around a **B+Tree + WAL + value log** storage engine, **strict two-phase locking**, and a **C-compatible protocol**. The project aims to feel like a production system even while it grows: clear specs, predictable builds, and test coverage that tracks every milestone.
+Jubilant DB is a single-node, hybrid memory+disk key–value store for teams that want a predictable, CLI-friendly database that can grow into server-backed deployments. It pairs a **B+Tree + WAL + value log** storage engine with **strict two-phase locking** and a **length-prefixed network envelope** so local testing and remote clients share the same semantics.
+
+## Release status
+
+- **Current version: v0.0.2 (networked transaction preview).** The JSON wire framing, Python client bundle, server bootstrap, and `jubectl --remote` flow are in place.
+- **Outstanding for true v0.0.2 sign-off:** end-to-end integration tests that drive `set/get/del` through the network stack and verify durable replay on restart.
+- Historical acceptance notes for the initial CLI-only milestone remain in [`FIRST_STEPS.md`](FIRST_STEPS.md).
 
 ## What you get today
 
-- **CLI-first store:** `jubectl init/set/get/del` exercise the storage engine end to end with UTF-8 key validation and overwrite semantics.
-- **Durability guardrails:** Monotonic MANIFEST generations, dual superblocks with CRC selection, and a WAL replayed on startup.
+- **Local operations:** `jubectl init/set/get/del` exercise the storage engine end to end with UTF-8 key validation and overwrite semantics.
+- **Networked preview:** `jubectl --remote`, the Python client bundle, and the server bootstrap share the same JSON envelope so client teams can test without inventing their own framing.
+- **Durability guardrails:** Monotonic MANIFEST generations, dual superblocks with CRC selection, and WAL replay on startup to keep crash recovery predictable.
 - **Early observability:** `jubectl stats` and `jubectl validate` surface manifest/superblock metadata, checkpoint progress, and corruption checks.
-- **Server scaffolding:** The transaction receiver, worker pool, and completion queue under `src/server/` let wire-protocol work focus on dispatch and correctness.
-
-Current coverage for v0.0.1 acceptance criteria lives in [`FIRST_STEPS.md`](FIRST_STEPS.md), with tests under `tests/` exercising CRUD, persistence, pager IO, and WAL replay.
 
 ## Quickstart
 
@@ -51,7 +55,7 @@ jubectl validate <db_dir>
 
 Keys must be non-empty UTF-8 strings. Values may be raw bytes (hex), UTF-8 strings, or signed 64-bit integers. `stats` prints manifest/superblock metadata and checkpoint state; `validate` replays manifest and superblock validation to flag corruption.
 
-Remote envelope mode (v0.0.2 draft) reuses the same JSON framing described in
+Remote envelope mode (v0.0.2) reuses the same JSON framing described in
 [`docs/txn-wire-v0.0.2.md`](docs/txn-wire-v0.0.2.md):
 
 ```sh
@@ -125,7 +129,7 @@ banner so clients can discover the dynamic endpoint.
 - **Product/storage spec:** [`MAIN_SPECIFICATION.md`](MAIN_SPECIFICATION.md)
 - **Technical stack:** [`TECH_SPECIFICATION.md`](TECH_SPECIFICATION.md)
 - **Server runtime scaffolding:** [`docs/server-runtime.md`](docs/server-runtime.md)
-- **Server roadmap + milestones:** [`docs/server-roadmap.md`](docs/server-roadmap.md) and [`FUTURE_UPDATES.md`](FUTURE_UPDATES.md)
+- **Unified roadmap:** [`docs/roadmap.md`](docs/roadmap.md) with milestone detail in [`docs/v0.0.2-plan.md`](docs/v0.0.2-plan.md)
 
 ## Build and contribution workflow
 
@@ -146,8 +150,8 @@ banner so clients can discover the dynamic endpoint.
 
 ## Roadmap snapshot
 
-- **v0.0.1 (in progress):** CLI-driven storage with WAL-backed durability and validation utilities. See [`FIRST_STEPS.md`](FIRST_STEPS.md) for the acceptance checklist.
-- **Server buildout:** The runtime scaffolding is staged; wire protocol, TTL enforcement, and transactional flows are the next focus. Longer-horizon work lives in [`FUTURE_UPDATES.md`](FUTURE_UPDATES.md).
+- **v0.0.2:** Networked transactions are available for experimentation. The remaining release blocker is integration coverage that drives the JSON envelope through the C++ server to prove durability and restart safety.
+- **Next milestones:** Continued server/runtime hardening plus observability, validation, and long-range HA work are tracked in [`docs/roadmap.md`](docs/roadmap.md).
 
 ## License
 
