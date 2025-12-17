@@ -40,6 +40,7 @@ void Server::Start() {
     auto on_complete = [this](TransactionResult result) {
       std::scoped_lock guard(results_mutex_);
       completed_transactions_.push_back(std::move(result));
+      results_cv_.notify_all();
     };
 
     auto worker = std::make_unique<Worker>("worker-" + std::to_string(i), receiver_, lock_manager_,
@@ -60,6 +61,8 @@ void Server::Stop() {
     worker->Stop();
   }
   workers_.clear();
+
+  results_cv_.notify_all();
 }
 
 bool Server::SubmitTransaction(txn::TransactionRequest request) {
@@ -78,6 +81,12 @@ std::vector<TransactionResult> Server::DrainCompleted() {
   auto drained = std::move(completed_transactions_);
   completed_transactions_.clear();
   return drained;
+}
+
+bool Server::WaitForResults(std::chrono::milliseconds timeout) {
+  std::unique_lock lock(results_mutex_);
+  return results_cv_.wait_for(
+      lock, timeout, [this]() { return !completed_transactions_.empty() || !running_.load(); });
 }
 
 bool Server::running() const noexcept {
