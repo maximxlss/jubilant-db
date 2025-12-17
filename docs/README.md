@@ -16,6 +16,7 @@ This index is the entry point for engineers and contributors. It groups the spec
 - **Wire envelope (v0.0.2 prototype):** [`txn-wire-v0.0.2.md`](txn-wire-v0.0.2.md) details the length-prefixed JSON framing and provides sample payloads.
 - **FlatBuffers transition plan:** [`flatbuffers-wire-transition.md`](flatbuffers-wire-transition.md) is a near-complete guide for moving from JSON to the long-term FlatBuffers wire protocol, including rollout phases, risks, and validation steps.
 - **CMake/CI setup:** [`ci-setup.md`](ci-setup.md) documents how to reproduce CI locally using presets and helper targets.
+- **Current code review notes:** [`code-review-findings.md`](code-review-findings.md) records reliability/stability gaps and fixes observed during repository sweeps.
 
 ## Clients and tooling
 * **jubectl remote mode:** `jubectl --remote <host:port>` now speaks the same length-prefixed JSON envelope for `set/get/del` plus a `txn` command that loads a JSON request (or `operations` array) from disk. Provide `--txn-id` to pin the transaction id and `--timeout-ms` to tune socket timeouts.

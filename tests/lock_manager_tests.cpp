@@ -35,6 +35,7 @@ TEST(LockManagerTest, AllowsConcurrentSharedAccess) {
 
   constexpr int kThreadCount = 8;
   std::barrier sync_point{kThreadCount};
+  std::barrier ready_to_release{kThreadCount};
   std::atomic<int> active_readers{0};
   std::atomic<int> max_readers{0};
 
@@ -42,15 +43,15 @@ TEST(LockManagerTest, AllowsConcurrentSharedAccess) {
     sync_point.arrive_and_wait();
 
     manager.Acquire("key", LockMode::kShared);
-    const int current = ++active_readers;
-
-    int observed = max_readers.load();
-    while (current > observed && !max_readers.compare_exchange_weak(observed, current)) {
-      // observed value updated by compare_exchange_weak
+    const int current = active_readers.fetch_add(1) + 1;
+    int expected = max_readers.load();
+    while (expected < current && !max_readers.compare_exchange_weak(expected, current)) {
+      // expected is updated with the latest observed value on failure
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    --active_readers;
+    ready_to_release.arrive_and_wait();
+
+    active_readers.fetch_sub(1);
     manager.Release("key", LockMode::kShared);
   };
 
