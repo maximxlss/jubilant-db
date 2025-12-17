@@ -18,6 +18,7 @@ This index standardizes where to find design, implementation, and roadmap materi
   python tools/clients/python/jubectl_client.py --host 127.0.0.1 --port 6767 get alpha
   ```
   Bytes are provided as hex on the CLI and base64-encoded on the wire per [`txn-wire-v0.0.2.md`](txn-wire-v0.0.2.md).
+* **jubectl remote mode:** `jubectl --remote <host:port>` now speaks the same length-prefixed JSON envelope for `set/get/del` plus a `txn` command that loads a JSON request (or `operations` array) from disk. Provide `--txn-id` to pin the transaction id and `--timeout-ms` to tune socket timeouts.
 
 ## Milestones and status
 

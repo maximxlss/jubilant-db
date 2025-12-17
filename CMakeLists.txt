@@ -144,6 +144,7 @@ endif()
 # CLI --------------------------------------------------------------------------
 add_executable(jubectl
   tools/jubectl/main.cpp
+  tools/jubectl/remote_client.cpp
 )
 
 target_link_libraries(jubectl
