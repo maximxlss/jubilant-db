@@ -44,7 +44,10 @@ TEST(LockManagerTest, AllowsConcurrentSharedAccess) {
 
     manager.Acquire("key", LockMode::kShared);
     const int current = active_readers.fetch_add(1) + 1;
-    max_readers.fetch_max(current);
+    int expected = max_readers.load();
+    while (expected < current && !max_readers.compare_exchange_weak(expected, current)) {
+      // expected is updated with the latest observed value on failure
+    }
 
     ready_to_release.arrive_and_wait();
 
