@@ -5,20 +5,26 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Status: Active Scaffolding](https://img.shields.io/badge/status-active%20scaffolding-orange)](MAIN_SPECIFICATION.md)
 
-Jubilant DB is a single-node, hybrid memory+disk key–value store for teams that want a predictable, CLI-friendly database that can grow into server-backed deployments. It pairs a **B+Tree + WAL + value log** storage engine with **strict two-phase locking** and a **length-prefixed network envelope** so local testing and remote clients share the same semantics.
+Jubilant DB is a local-first key–value store for small teams that want to ship features fast without babysitting infrastructure. You get a single binary, a friendly CLI, and the option to flip on the server preview when you need remote clients—all while keeping the same workflow.
+
+**Why teams pick it**
+
+- **Easy start:** initialize a database directory and try reads/writes in minutes with `jubectl`.
+- **Remote-ready:** the v0.0.2 server preview lets you switch on a network endpoint without changing your data model.
+- **Safe by default:** durability, validation, and restart checks are built in so you can experiment without losing data.
 
 ## Release status
 
-- **Current version: v0.0.2 (networked transaction preview).** The JSON wire framing, Python client bundle, server bootstrap, and `jubectl --remote` flow are in place.
+- **Current version: v0.0.2 (networked transaction preview).** The JSON wire framing, Python client bundle, server bootstrap, and `jubectl --remote` flow are in place for teams to try remote calls early.
 - **Outstanding for true v0.0.2 sign-off:** end-to-end integration tests that drive `set/get/del` through the network stack and verify durable replay on restart.
 - Historical acceptance notes for the initial CLI-only milestone remain in [`FIRST_STEPS.md`](FIRST_STEPS.md).
 
 ## What you get today
 
-- **Local operations:** `jubectl init/set/get/del` exercise the storage engine end to end with UTF-8 key validation and overwrite semantics.
-- **Networked preview:** `jubectl --remote`, the Python client bundle, and the server bootstrap share the same JSON envelope so client teams can test without inventing their own framing.
-- **Durability guardrails:** Monotonic MANIFEST generations, dual superblocks with CRC selection, and WAL replay on startup to keep crash recovery predictable.
-- **Early observability:** `jubectl stats` and `jubectl validate` surface manifest/superblock metadata, checkpoint progress, and corruption checks.
+- **Local operations:** `jubectl init/set/get/del` help you create a database directory, try reads/writes, and validate keys without wiring up extra services.
+- **Networked preview:** `jubectl --remote`, the Python client bundle, and the server bootstrap share the same JSON envelope so you can point a client at a port and see remote calls work.
+- **Durability guardrails:** Manifest tracking, mirrored superblocks, and WAL replay on startup keep the database recoverable after crashes.
+- **Early observability:** `jubectl stats` and `jubectl validate` show you the metadata being written, checkpoint progress, and corruption checks so you can trust what you see.
 
 ## Quickstart
 
@@ -81,6 +87,10 @@ python tools/clients/python/jubectl_client.py --host 127.0.0.1 --port 6767 del a
 
 Byte values are passed as hex on the CLI and base64-encoded on the wire. An optional `--txn-id` supports deterministic testing.
 All Python client scripts are staged into `build/<preset>/python_clients/` by the `python_clients` target, which is included in the default presets. Use `cmake --build --preset dev-debug-server` to build just the server binary and Python bundle after configuring.
+
+### Under the hood
+
+If you want the implementation detail, the current build combines a **B+Tree + WAL + value log** storage engine with **strict two-phase locking** and a **length-prefixed network envelope** so local testing and remote clients share the same semantics.
 
 ## Server bootstrap (v0.0.2)
 
