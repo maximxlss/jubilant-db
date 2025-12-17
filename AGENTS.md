@@ -10,6 +10,7 @@
 - For new features or significant changes, consider updating `MAIN_SPECIFICATION.md` and `TECH_SPECIFICATION.md` to reflect the intended design.
 - DO NOT, I repeat DO NOT write incomplete, untested, incorrect, or one you are unsure about code and documentataion. Always strive for correctness and completeness in your contributions. Report to the user if you are unsure about any part of the task. Report to the user if you find any ambiguities or contradictions in the provided information. Report to the user if you have failed to deliver correct and complete code or documentation.
 - CONTRIBUTING.md is just as important as this file is; read CONTRIBUTING.md.
+- Before committing, run cmake --build --preset dev-debug --target clang-format and cmake --build --preset dev-debug-tidy; commits with formatting drift or outstanding clang-tidy warnings are not permitted.
 
 # ExecPlans
  
