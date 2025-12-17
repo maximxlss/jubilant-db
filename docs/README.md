@@ -1,38 +1,38 @@
-# Jubilant DB documentation map
+# Documentation index
 
-This index standardizes where to find design, implementation, and roadmap material for Jubilant DB.
+This index is the entry point for engineers and contributors. It groups the specs, how-to guides, and roadmaps so the project reads like a real product as it grows.
 
-## Specifications
+## Start here
 
-* **Product + storage spec:** [`MAIN_SPECIFICATION.md`](../MAIN_SPECIFICATION.md) captures semantics, protocol, storage layout, and operational rules for v1.0.
-* **Technical stack:** [`TECH_SPECIFICATION.md`](../TECH_SPECIFICATION.md) documents the toolchain, build system, and dependencies.
-* **Wire protocol (v0.0.2 draft):** [`txn-wire-v0.0.2.md`](txn-wire-v0.0.2.md) details the length-prefixed JSON envelope for `set/get/del` transactions.
-* **Framing harness:** [`tools/clients/python/echo_stub.py`](../tools/clients/python/echo_stub.py) and [`framing_probe.py`](../tools/clients/python/framing_probe.py) provide a loopback echo server plus probe to validate the v0.0.2 framing before the C++ adapter lands.
+- **Project overview:** [`README.md`](../README.md) summarizes goals, quickstart commands, and current status.
+- **Contributor expectations:** [`CONTRIBUTING.md`](../CONTRIBUTING.md) covers workflow, commit style, formatting, and presets.
+- **Specs:**
+  - Product + storage semantics: [`MAIN_SPECIFICATION.md`](../MAIN_SPECIFICATION.md)
+  - Tooling and stack recommendations: [`TECH_SPECIFICATION.md`](../TECH_SPECIFICATION.md)
+
+## Architecture and runtime
+
+- **Server runtime scaffolding:** [`server-runtime.md`](server-runtime.md) explains the transaction receiver, worker pool, and completion queue that underpin the future wire protocol.
+- **Wire envelope (v0.0.2 prototype):** [`txn-wire-v0.0.2.md`](txn-wire-v0.0.2.md) details the length-prefixed JSON framing and provides sample payloads.
+- **CMake/CI setup:** [`ci-setup.md`](ci-setup.md) documents how to reproduce CI locally using presets and helper targets.
 
 ## Clients and tooling
-
-* **Python client prototype:** [`tools/clients/python/`](../tools/clients/python) hosts `jubilant_client.py` plus a simple CLI `jubectl_client.py` that speaks the v0.0.2 envelope. Example:
-
-  ```sh
-  python tools/clients/python/jubectl_client.py --host 127.0.0.1 --port 6767 set alpha string bravo
-  python tools/clients/python/jubectl_client.py --host 127.0.0.1 --port 6767 get alpha
-  ```
-  Bytes are provided as hex on the CLI and base64-encoded on the wire per [`txn-wire-v0.0.2.md`](txn-wire-v0.0.2.md).
 * **Server bootstrap:** `jubildb_server` reads a TOML config, initializes storage, and starts the network adapter + worker pool. Build via `cmake --build --preset dev-debug --target jubildb_server` and launch with `./build/dev-debug/jubildb_server --config ./server.toml [--workers N]`.
+- **Python client prototype:** [`tools/clients/python/`](../tools/clients/python) ships `jubilant_client.py` and the CLI wrapper `jubectl_client.py` for the v0.0.2 envelope. Bytes are provided as hex and base64-encoded on the wire.
+- **CLI usage:** The top-level [`README.md`](../README.md) documents `jubectl init/set/get/del/stats/validate` and links to configuration options.
 
-## Milestones and status
+## Milestones and acceptance
 
-* **Current milestone (v0.0.1):** [`FIRST_STEPS.md`](../FIRST_STEPS.md) defines the acceptance criteria for the initial CLI-driven store. The implemented `jubectl init/set/get/del` flows are validated by unit tests in `tests/` (SimpleStore persistence, pager IO, B+Tree correctness, and metadata scaffolding). Observability now includes `jubectl stats`/`validate` that surface manifest/superblock metadata and checkpoint state for quick health checks.
-* **Test evidence:** Run `ctest --preset dev-debug` after configuring via `cmake --preset dev-debug` to exercise the v0.0.1 coverage.
-* **Server runtime scaffolding:** [`server-runtime.md`](server-runtime.md) documents the transaction receiver + worker pool wiring that will back the wire protocol in upcoming milestones.
+- **v0.0.1 acceptance checklist:** [`FIRST_STEPS.md`](../FIRST_STEPS.md) tracks the definition of done for the initial CLI-driven store and the evidence provided by unit tests.
+- **Planned v0.0.2 work:** [`docs/v0.0.2-plan.md`](v0.0.2-plan.md) outlines the next envelope iteration and runtime wiring.
 
-## Roadmap
+## Roadmaps
 
-* **Near-term steps:** The README surface roadmap outlines the next few iterations beyond v0.0.1.
-* **Longer horizon:** [`FUTURE_UPDATES.md`](../FUTURE_UPDATES.md) tracks deeper durability, transaction, and protocol work.
-* **Full server buildout:** [`docs/server-roadmap.md`](server-roadmap.md) sequences milestones from schemas through wire protocol and operational tooling.
+- **Upcoming storage + transaction work:** [`FUTURE_UPDATES.md`](../FUTURE_UPDATES.md) captures the broader roadmap for durability, transactions, protocol, and operations.
+- **Server buildout sequence:** [`server-roadmap.md`](server-roadmap.md) strings together schemas, runtime milestones, and operational tooling.
 
-## Contribution and tooling
+## How to navigate
 
-* **Build & CI:** Day-to-day build/test commands live in the top-level [`README.md`](../README.md); CI mirrors those presets and enforces `clang-format`/`clang-tidy`.
-* **Developer workflow:** Refer to [`CONTRIBUTING.md`](../CONTRIBUTING.md) for conventions, commit expectations, and environment setup tips.
+- Looking for implementation detail? Start with `src/` alongside the specs above.
+- Need to reproduce CI or run linters? Use the presets and helper targets in `CMakePresets.json` and check `ci-setup.md`.
+- Want to extend the docs? Keep this index updated so new contributors can find the right entry point quickly.

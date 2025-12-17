@@ -1,201 +1,71 @@
-## v0.0.1 Skeleton Plan (updated, ready to execute)
+# Milestone v0.0.1 — CLI-first store
 
-### Status snapshot
+This milestone proves the storage engine by running `jubectl` end to end on a single node. It is intentionally small, but it must feel production-worthy: persistence across restarts, UTF-8 validation, overwrite semantics, and basic durability guardrails.
 
-* **Implemented:** In-memory B+Tree insert/find/delete, pager page IO and allocation skeleton, manifest generations with disk persistence, dual superblocks with CRC selection, a WAL manager that replays recorded operations on startup, and the `SimpleStore` wrapper that powers `jubectl init/set/get/del` with UTF-8 key validation and overwrite semantics.
-* **Tested:** Persistence and CRUD semantics for `SimpleStore`, B+Tree overwrite/delete behavior, pager read/write parity, manifest generation bumps, superblock selection under CRC corruption, WAL disk replay, lock manager basics, and transaction context overlays (`tests/*.cpp`). Run `cmake --preset dev-debug` followed by `ctest --preset dev-debug` to exercise coverage.
-* **Not yet covered:** Crash recovery beyond WAL replay, concurrency, TTL enforcement, and value-log plumbing.
+## Scope and outcomes
 
-### Target outcome
+### What v0.0.1 delivers
 
-A tiny end-to-end local DB you can run via `jubectl`:
+- `jubectl init/set/get/del` backed by `SimpleStore` and the pager/B+Tree stack.
+- UTF-8 key validation and overwrite semantics.
+- MANIFEST generations persisted to disk with monotonic selection on load.
+- Dual superblocks with CRC selection and generation tracking.
+- WAL replay at startup to restore state after clean shutdowns.
+- Observability via `jubectl stats` and `jubectl validate` (manifest + superblock metadata and corruption checks).
 
-* `init` creates a DB directory
-* `set/get/del` work
-* clean shutdown + reopen preserves data
+### What is explicitly out of scope
 
-No WAL, no transactions, no server, no TTL, no value log.
+- Crash recovery beyond WAL replay (e.g., mid-flight crash hardening).
+- Concurrency or TTL enforcement.
+- Value-log plumbing and compaction.
+- Wire protocol and server-facing transaction executor.
 
----
+## Definition of done
 
-### How to use this checklist
+- **CLI behavior:** `jubectl init/set/get/del/stats/validate` operate on a DB directory and print clear errors for invalid input.
+- **Persistence:** Data written through `jubectl` survives clean restart; MANIFEST and superblocks select the newest valid generation.
+- **WAL:** Recorded operations are replayed on startup; corruption is surfaced via CRC checks.
+- **Tests:** `ctest --preset dev-debug` passes; unit coverage includes B+Tree insert/overwrite/delete, pager IO, manifest/superblock rotation, WAL replay, and `SimpleStore` persistence.
+- **Build + lint:** CMake presets configure cleanly (`cmake --preset dev-debug`), and formatting passes (`--target clang-format`).
 
-* Treat each numbered section as a milestone with a testable definition of done.
-* Prefer writing the unit/integration test immediately after sketching the API so TDD can drive the implementation.
-* Capture TODOs in headers and brief docstrings instead of leaving implicit assumptions.
+## Milestone checklist
 
----
+1. **Repository + build wiring**
+   - CMake builds `jubectl`, `unit_tests`, FlatBuffers codegen, and formatting targets.
+   - Conventional Commits in use; clang-format/clang-tidy configs checked in.
 
-## 0) Repo + build (Day 0)
+2. **On-disk layout**
+   - Files: `MANIFEST` (size-prefixed FlatBuffer), `SUPERBLOCK_A/B` (CRC + generation), `data.pages` (fixed-size page file).
+   - Selection rules: choose the valid superblock with the highest generation, otherwise treat as new DB.
 
-**Deliverables**
+3. **Pager**
+   - Fixed-size page IO at `page_id * page_size` offsets.
+   - Monotonic page allocator; CRC/type tags kept in headers.
+   - API: open/read/write/alloc/fsync.
 
-* CMake builds:
+4. **B+Tree (minimal)**
+   - Insert with splitting, overwrite in place, delete by tombstoning a leaf entry (no merge/rebalance yet).
+   - Key encoding: `u32 len + UTF-8 bytes`; value encoding supports bytes/string/int64.
+   - Operations: `get`, `set`, `del` with bytewise lexicographic ordering.
 
-* `jubectl`
-  * `unit_tests`
-* FlatBuffers build step (generate C++ from `disk.fbs` and optionally `wire.fbs`)
-* clang-format, clang-tidy configs in repo
-* Conventional Commits enforced socially (CI later)
+5. **Store + CLI integration**
+   - `SimpleStore` wraps pager + tree, exposes CRUD to `jubectl` and wires UTF-8 validation.
+   - `jubectl stats` prints manifest generation/version, page sizing, active superblock root, checkpoint LSN, and page/key counts.
+   - `jubectl validate` reruns manifest validation and superblock CRC selection.
 
-**Key decisions**
+6. **Durability and observability**
+   - MANIFEST writes fsynced; superblocks updated on checkpoint/close.
+   - WAL segments size-prefixed with CRC; replay on startup is deterministic.
+   - Logging and error messages are actionable for failed validation.
 
-* Page size constant for v0.0.1: **4096 bytes**
+## Developer loop
 
----
+Run the standard presets while iterating:
 
-## 1) Minimal on-disk layout (Day 1)
+```sh
+cmake --preset dev-debug
+cmake --build --preset dev-debug
+ctest --preset dev-debug
+```
 
-### DB directory contents
-
-* `MANIFEST` (size-prefixed FlatBuffer)
-* `SUPERBLOCK_A` (binary struct or FlatBuffer; include CRC + generation)
-* `SUPERBLOCK_B` (same; initially optional to write both, but file must exist)
-* `data.pages` (fixed-size page file)
-
-### Manifest fields (minimum)
-
-* `format_major`, `format_minor`
-* `db_uuid` (random)
-* `page_size = 4096`
-* `inline_threshold` (store a value, but v0.0.1 always inlines)
-* schema version placeholders (strings or ints)
-
-### Superblock fields (minimum)
-
-* `generation` (u64)
-* `root_page_id` (u64)
-* `crc` (u32/u64)
-* (future fields can be reserved padding)
-
-**Open logic**
-
-* Read both superblocks; pick the one with valid CRC and highest generation.
-* If none valid: treat as new DB.
-
-**Close logic**
-
-* Ensure superblock is updated to point to current root.
-* Fsync metadata + `data.pages`.
-
----
-
-## 2) Pager (Day 1–2)
-
-### Pager responsibilities
-
-* Open/create `data.pages`
-* Read/write pages at fixed offsets: `offset = page_id * 4096`
-* Allocate new pages (simple monotonic allocator is fine for v0.0.1)
-
-### Minimal API
-
-* `Pager::open(path)`
-* `Page Pager::read(page_id)`
-* `void Pager::write(page_id, Page)`
-* `page_id Pager::alloc_page(PageType)`
-* `void Pager::fsync()`
-
-### Page header (inside each page)
-
-* `page_id` (u64)
-* `page_type` (u16)
-* `crc` (u32)
-* (rest is payload)
-
-CRC can be computed and stored; for v0.0.1 you can enforce it only in tests (but implementing it now reduces churn).
-
-**Deliverable**
-
-* Unit test: allocate → write known bytes → read back exact.
-
----
-
-## 3) Minimal B+Tree (Day 2–4)
-
-### Simplifications allowed in v0.0.1
-
-* Only implement splitting on insert.
-* Deletes can be “remove entry from leaf” without merge/rebalance.
-* No range scan required.
-* Single-threaded.
-
-### Key/value encoding in leaf
-
-* Key: `u32 key_len + key_bytes` (must be valid UTF-8 on input)
-* Value: tagged union:
-
-  * `Bytes`: `u32 len + bytes`
-  * `String`: `u32 len + utf8 bytes` (validate)
-  * `Int64`: `i64`
-
-(You can use FlatBuffers `Value` union right away if you prefer; for v0.0.1 the simple encoding is fastest to implement and easy to swap later.)
-
-### Operations
-
-* `get(key) -> optional<Value>`
-* `set(key, Value) -> void` (overwrite if exists)
-* `del(key) -> bool` (true if existed)
-
-**Deliverables**
-
-* Insert 10k keys, verify reads.
-* Overwrite behavior test.
-* Delete behavior test.
-* Persistence test: create → set N → close → reopen → verify.
-
----
-
-## 4) `jubectl` CLI (Day 3–4)
-
-### Commands
-
-* `jubectl init <db_dir>`
-* `jubectl set <db_dir> <key> bytes <hex>`
-* `jubectl set <db_dir> <key> string <utf8>`
-* `jubectl set <db_dir> <key> int <int64>`
-* `jubectl get <db_dir> <key>`
-* `jubectl del <db_dir> <key>`
-
-Optional debug:
-
-* `jubectl stats <db_dir>` (page count, root id)
-
-**Bytes input**
-
-* hex string (even length), decode to raw bytes.
-
----
-
-## 5) v0.0.1 correctness guarantees (explicit in README)
-
-Guaranteed:
-
-* Correct GET/SET/DEL semantics
-* UTF-8 key validation
-* Persistence across clean shutdown
-
-Not guaranteed (yet):
-
-* Crash safety (no WAL)
-* Concurrency/thread safety
-* Transactions, TTL, value log, repair
-
----
-
-## 6) Definition of Done
-
-* `jubectl init/set/get/del` works end-to-end
-* Persistence test passes
-* Unit tests in CI pass (format/lint can be added later, but at least build+tests)
-
----
-
-### Suggested first commit sequence (Conventional Commits)
-
-1. `chore: scaffold repo with cmake and tool targets`
-2. `feat(meta): add manifest and superblock read/write`
-3. `feat(pager): implement fixed-size page io and allocator`
-4. `feat(btree): implement leaf insert/find and root handling`
-5. `feat(cli): add jubectl init/set/get/del`
-6. `test: add persistence and overwrite/delete unit tests`
+Targeted formatting and linting are available through CMake build targets (e.g., `--target clang-format`) and the tidy-friendly preset `dev-debug-tidy`.
