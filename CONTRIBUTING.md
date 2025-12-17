@@ -40,6 +40,13 @@ The repository is intentionally preset-driven so contributors can get consistent
 
 Presets live in `CMakePresets.json`; avoid hand-rolling `cmake` invocations so CI and local environments remain aligned.
 
+## Runtime and integration quickstart
+- **Build the server + Python clients:** `cmake --build --preset dev-debug-server` after configuring a `dev-debug` tree.
+- **Run the server:** create a `server.toml` with `db_path`, `listen_address`, and `listen_port` (non-zero), initialize the data dir once via `./build/dev-debug/jubectl init <path>`, then start with `./build/dev-debug/jubildb_server --config ./server.toml --workers 4`.
+- **Run integration tests:** `ctest --preset dev-debug -R DualClient` focuses on the dual-client end-to-end cases; drop `-R DualClient` to run the full suite.
+- **Python prerequisites:** integration tests shell out to the staged clients and require `python3` but no extra pip packages. Set `PYTHONPATH=build/<preset>/python_clients` when running the Python client scripts manually.
+- See [`docs/testing.md`](docs/testing.md) for troubleshooting tips, sample configs, and pytest guidance.
+
 ## Pull requests
 - Keep changes focused and documented.
 - Make sure commits describe what changed and why.

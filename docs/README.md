@@ -6,6 +6,7 @@ This index is the entry point for engineers and contributors. It groups the spec
 
 - **Project overview:** [`README.md`](../README.md) summarizes goals, quickstart commands, and current status.
 - **Contributor expectations:** [`CONTRIBUTING.md`](../CONTRIBUTING.md) covers workflow, commit style, formatting, and presets.
+- **Testing + runtime:** [`docs/testing.md`](testing.md) walks through building the server, running integration tests, staging Python clients, and resolving common issues.
 - **Specs:**
   - Product + storage semantics: [`MAIN_SPECIFICATION.md`](../MAIN_SPECIFICATION.md)
   - Tooling and stack recommendations: [`TECH_SPECIFICATION.md`](../TECH_SPECIFICATION.md)
