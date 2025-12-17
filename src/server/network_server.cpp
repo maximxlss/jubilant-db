@@ -5,10 +5,12 @@
 #include <algorithm>
 #include <arpa/inet.h>
 #include <array>
+#include <cerrno>
 #include <chrono>
 #include <cstring>
 #include <limits>
 #include <netinet/in.h>
+#include <poll.h>
 #include <ranges>
 #include <sys/socket.h>
 #include <type_traits>
@@ -20,6 +22,7 @@ namespace {
 
 constexpr std::size_t kMaxFrameSize = 1U << 20; // 1 MiB cap for v0.0.2
 constexpr std::chrono::milliseconds kDrainWait{50};
+constexpr std::chrono::milliseconds kSendTimeout{1000};
 
 #ifndef MSG_NOSIGNAL
 #define MSG_NOSIGNAL 0
@@ -43,9 +46,37 @@ bool ReadExact(int socket_fd, std::byte* buffer, std::size_t length) {
 
 bool SendAll(int socket_fd, const std::byte* buffer, std::size_t length) {
   std::size_t offset = 0;
+  const auto deadline = std::chrono::steady_clock::now() + kSendTimeout;
   while (offset < length) {
-    const auto sent = ::send(socket_fd, buffer + offset, length - offset, MSG_NOSIGNAL);
-    if (sent <= 0) {
+    const auto sent =
+        ::send(socket_fd, buffer + offset, length - offset, MSG_NOSIGNAL | MSG_DONTWAIT);
+    if (sent < 0) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        if (std::chrono::steady_clock::now() >= deadline) {
+          return false;
+        }
+
+        pollfd socket_poll{
+            .fd = socket_fd,
+            .events = POLLOUT,
+            .revents = 0,
+        };
+        const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
+            deadline - std::chrono::steady_clock::now());
+        const auto wait_ms =
+            static_cast<int>(std::max(remaining.count(), decltype(remaining)::rep{0}));
+        const auto ready = ::poll(&socket_poll, 1, wait_ms);
+        if (ready <= 0 || (socket_poll.revents & (POLLERR | POLLHUP | POLLNVAL)) != 0) {
+          return false;
+        }
+        continue;
+      }
+      if (errno == EINTR) {
+        continue;
+      }
+      return false;
+    }
+    if (sent == 0) {
       return false;
     }
     offset += static_cast<std::size_t>(sent);
