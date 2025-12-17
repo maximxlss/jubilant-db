@@ -12,6 +12,8 @@
 #include "txn/transaction_request.h"
 
 #include <atomic>
+#include <chrono>
+#include <condition_variable>
 #include <filesystem>
 #include <memory>
 #include <mutex>
@@ -32,6 +34,7 @@ public:
 
   bool SubmitTransaction(txn::TransactionRequest request);
   std::vector<TransactionResult> DrainCompleted();
+  bool WaitForResults(std::chrono::milliseconds timeout);
 
   [[nodiscard]] bool running() const noexcept;
 
@@ -55,6 +58,7 @@ private:
 
   std::vector<std::unique_ptr<Worker>> workers_;
   std::mutex results_mutex_;
+  std::condition_variable results_cv_;
   std::vector<TransactionResult> completed_transactions_;
 };
 

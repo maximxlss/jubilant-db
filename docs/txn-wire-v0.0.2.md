@@ -12,7 +12,10 @@ rest of the network stack is still under development.
 * **Framing:** A 4-byte unsigned length prefix in **network byte order**
   (`uint32_t`, big-endian) precedes every JSON payload. The prefix covers only
   the JSON byte length (no sentinel or checksum). Servers must treat incomplete
-  frames as malformed and close the connection.
+  frames as malformed and close the connection. Individual frames are capped at
+  **1 MiB** for v0.0.2 to prevent unbounded allocations; larger prefixes are
+  rejected and the connection is closed. Responses that would exceed this cap
+  are not transmitted; the server closes the connection instead.
 * **Pairing:** Each request yields exactly one response with the same
   `txn_id`. Responses are emitted as soon as the transaction finishes; no
   batching or multiplexing is defined for v0.0.2.
@@ -144,6 +147,10 @@ fields are allowed for forward compatibility and should be ignored.
 * `set` overwrites existing keys; the server may return the stored value in the
   response for observability but is not required to do so in v0.0.2.
 * `del` reports `success=false` when no key was removed.
+* Malformed frames (bad length prefix, invalid JSON, or schema violations) must
+  be rejected by closing the connection. Duplicate in-flight `txn_id` values are
+  aborted with a response that mirrors the requested operations and
+  `state="aborted"`.
 * Connections may carry multiple back-to-back frames. The receiver must not
   treat framing boundaries as message boundaries inside the JSON payload (the
   entire payload belongs to a single frame).

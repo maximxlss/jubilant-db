@@ -40,8 +40,13 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
   GIT_TAG v3.4.0
 )
+FetchContent_Declare(
+  nlohmann_json
+  GIT_REPOSITORY https://github.com/nlohmann/json.git
+  GIT_TAG v3.11.3
+)
 
-FetchContent_MakeAvailable(flatbuffers googletest tomlplusplus)
+FetchContent_MakeAvailable(flatbuffers googletest tomlplusplus nlohmann_json)
 
 # Tooling ----------------------------------------------------------------------
 if(JUBILANT_ENABLE_CLANG_TIDY)
@@ -96,6 +101,7 @@ add_library(jubildb
   src/meta/manifest.cpp
   src/meta/superblock.cpp
   src/server/server.cpp
+  src/server/network_server.cpp
   src/server/transaction_receiver.cpp
   src/server/worker.cpp
   src/storage/btree/btree.cpp
@@ -118,6 +124,7 @@ target_include_directories(jubildb
 target_link_libraries(jubildb
   PUBLIC
     flatbuffers
+    nlohmann_json::nlohmann_json
     tomlplusplus::tomlplusplus
 )
 
@@ -166,6 +173,7 @@ if(JUBILANT_BUILD_TESTS)
     tests/pager_tests.cpp
     tests/simple_store_tests.cpp
     tests/server_worker_tests.cpp
+    tests/network_server_tests.cpp
     tests/superblock_tests.cpp
     tests/transaction_context_tests.cpp
     tests/value_log_tests.cpp
