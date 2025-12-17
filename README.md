@@ -76,6 +76,7 @@ python tools/clients/python/jubectl_client.py --host 127.0.0.1 --port 6767 del a
 ```
 
 Byte values are passed as hex on the CLI and base64-encoded on the wire. An optional `--txn-id` supports deterministic testing.
+All Python client scripts are staged into `build/<preset>/python_clients/` by the `python_clients` target, which is included in the default presets. Use `cmake --build --preset dev-debug-server` to build just the server binary and Python bundle after configuring.
 
 ## Server bootstrap (v0.0.2)
 
@@ -83,7 +84,7 @@ The `jubildb_server` binary loads a TOML configuration, initializes storage, sta
 and binds the network adapter described in [`docs/txn-wire-v0.0.2.md`](docs/txn-wire-v0.0.2.md).
 
 ```sh
-cmake --build --preset dev-debug --target jubildb_server
+cmake --build --preset dev-debug-server
 ./build/dev-debug/jubildb_server --config ./server.toml --workers 4
 ```
 
