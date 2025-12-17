@@ -206,3 +206,20 @@ Prefix `0x0000005b` (91 bytes), payload:
 These examples use compact JSON (`","` separators) to make length prefixes
 deterministic; whitespace may be added if both sides agree to recompute lengths
 accordingly.
+
+## Prototyping harness
+
+Run the Python echo stub to validate framing before the C++ network adapter is
+ready:
+
+```
+python -m tools.clients.python.echo_stub --host 127.0.0.1 --port 9000
+```
+
+To exercise the worked examples against the stub without keeping the server
+running, use the probe’s self-test (it starts the stub on an ephemeral port,
+issues set/get/del, and asserts the echoed responses):
+
+```
+python -m tools.clients.python.framing_probe --self-test
+```

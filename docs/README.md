@@ -7,6 +7,17 @@ This index standardizes where to find design, implementation, and roadmap materi
 * **Product + storage spec:** [`MAIN_SPECIFICATION.md`](../MAIN_SPECIFICATION.md) captures semantics, protocol, storage layout, and operational rules for v1.0.
 * **Technical stack:** [`TECH_SPECIFICATION.md`](../TECH_SPECIFICATION.md) documents the toolchain, build system, and dependencies.
 * **Wire protocol (v0.0.2 draft):** [`txn-wire-v0.0.2.md`](txn-wire-v0.0.2.md) details the length-prefixed JSON envelope for `set/get/del` transactions.
+* **Framing harness:** [`tools/clients/python/echo_stub.py`](../tools/clients/python/echo_stub.py) and [`framing_probe.py`](../tools/clients/python/framing_probe.py) provide a loopback echo server plus probe to validate the v0.0.2 framing before the C++ adapter lands.
+
+## Clients and tooling
+
+* **Python client prototype:** [`tools/clients/python/`](../tools/clients/python) hosts `jubilant_client.py` plus a simple CLI `jubectl_client.py` that speaks the v0.0.2 envelope. Example:
+
+  ```sh
+  python tools/clients/python/jubectl_client.py --host 127.0.0.1 --port 6767 set alpha string bravo
+  python tools/clients/python/jubectl_client.py --host 127.0.0.1 --port 6767 get alpha
+  ```
+  Bytes are provided as hex on the CLI and base64-encoded on the wire per [`txn-wire-v0.0.2.md`](txn-wire-v0.0.2.md).
 
 ## Milestones and status
 
