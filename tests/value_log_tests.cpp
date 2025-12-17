@@ -36,7 +36,7 @@ TEST(ValueLogTest, AppendsReturnMonotonicPointers) {
   EXPECT_EQ(first_result.length, first.size());
 
   EXPECT_EQ(second_result.pointer.segment_id, 0U);
-  EXPECT_EQ(second_result.pointer.offset, first.size() + sizeof(std::uint32_t) * 2);
+  EXPECT_EQ(second_result.pointer.offset, first.size() + (sizeof(std::uint32_t) * 2));
   EXPECT_EQ(second_result.length, second.size());
 }
 
@@ -49,6 +49,9 @@ TEST(ValueLogTest, PersistsAndReadsValues) {
 
   const auto read_back = vlog.Read(append_result.pointer);
   ASSERT_TRUE(read_back.has_value());
+  if (!read_back.has_value()) {
+    return;
+  }
   EXPECT_EQ(read_back->size(), payload.size());
   EXPECT_EQ(read_back->at(0), std::byte{0xCC});
 }

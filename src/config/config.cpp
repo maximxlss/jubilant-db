@@ -23,10 +23,11 @@ std::optional<Config> ConfigLoader::LoadFromFile(const std::filesystem::path& pa
   Config cfg{};
 
   const auto db_path = table["db_path"];
-  if (!db_path || !db_path.is_string() || db_path.value<std::string>()->empty()) {
+  const auto db_path_value = db_path.value<std::string>();
+  if (!db_path || !db_path.is_string() || !db_path_value || db_path_value->empty()) {
     return std::nullopt;
   }
-  cfg.db_path = *db_path.value<std::string>();
+  cfg.db_path = *db_path_value;
 
   if (const auto page_size = table["page_size"].value<std::uint32_t>()) {
     cfg.page_size = *page_size;

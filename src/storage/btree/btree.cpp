@@ -115,10 +115,10 @@ void BTree::Insert(const std::string& key, Record record) {
       throw std::invalid_argument("Value log required for oversized values");
     }
     const auto serialized = [&]() {
-      if (auto bytes = std::get_if<std::vector<std::byte>>(&record.value)) {
+      if (auto* bytes = std::get_if<std::vector<std::byte>>(&record.value)) {
         return *bytes;
       }
-      if (auto str = std::get_if<std::string>(&record.value)) {
+      if (auto* str = std::get_if<std::string>(&record.value)) {
         return std::vector<std::byte>(
             reinterpret_cast<const std::byte*>(str->data()),
             reinterpret_cast<const std::byte*>(str->data() + str->size()));
@@ -412,7 +412,7 @@ void BTree::RebuildLeafPages() {
     current.entries.clear();
     std::size_t used = sizeof(LeafHeader);
     while (iter != in_memory_.end()) {
-      LeafEntry entry{iter->first, iter->second};
+      LeafEntry entry{.key = iter->first, .record = iter->second};
       const auto entry_size = EncodedEntrySize(entry);
       if (used + entry_size > payload_size) {
         break;

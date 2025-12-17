@@ -3,11 +3,12 @@
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
+#include <string_view>
 
 namespace jubilant::config {
 namespace {
 
-std::filesystem::path WriteTempConfig(const std::string& name, const std::string& contents) {
+std::filesystem::path WriteTempConfig(const std::filesystem::path& name, std::string_view contents) {
   const auto temp_dir = std::filesystem::temp_directory_path() / "jubildb_config_tests";
   std::filesystem::create_directories(temp_dir);
 
@@ -34,13 +35,19 @@ listen_port = 7777
 
   const auto cfg = ConfigLoader::LoadFromFile(path);
   ASSERT_TRUE(cfg.has_value());
-  EXPECT_EQ(cfg->db_path, std::filesystem::path("./data"));
-  EXPECT_EQ(cfg->page_size, 8192U);
-  EXPECT_EQ(cfg->inline_threshold, 2048U);
-  EXPECT_EQ(cfg->group_commit_max_latency_ms, 12U);
-  EXPECT_EQ(cfg->cache_bytes, 134217728ULL);
-  EXPECT_EQ(cfg->listen_address, "0.0.0.0");
-  EXPECT_EQ(cfg->listen_port, 7777);
+  if (!cfg.has_value()) {
+    return;
+  }
+
+  const auto& loaded = cfg.value();
+
+  EXPECT_EQ(loaded.db_path, std::filesystem::path("./data"));
+  EXPECT_EQ(loaded.page_size, 8192U);
+  EXPECT_EQ(loaded.inline_threshold, 2048U);
+  EXPECT_EQ(loaded.group_commit_max_latency_ms, 12U);
+  EXPECT_EQ(loaded.cache_bytes, 134217728ULL);
+  EXPECT_EQ(loaded.listen_address, "0.0.0.0");
+  EXPECT_EQ(loaded.listen_port, 7777);
 }
 
 TEST(ConfigLoaderTest, FallsBackToDefaults) {
@@ -48,13 +55,19 @@ TEST(ConfigLoaderTest, FallsBackToDefaults) {
 
   const auto cfg = ConfigLoader::LoadFromFile(path);
   ASSERT_TRUE(cfg.has_value());
-  EXPECT_EQ(cfg->db_path, std::filesystem::path("/var/lib/jubildb"));
-  EXPECT_EQ(cfg->page_size, 4096U);
-  EXPECT_EQ(cfg->inline_threshold, 1024U);
-  EXPECT_EQ(cfg->group_commit_max_latency_ms, 5U);
-  EXPECT_EQ(cfg->cache_bytes, 64U * 1024U * 1024U);
-  EXPECT_EQ(cfg->listen_address, "127.0.0.1");
-  EXPECT_EQ(cfg->listen_port, 6767);
+  if (!cfg.has_value()) {
+    return;
+  }
+
+  const auto& loaded = cfg.value();
+
+  EXPECT_EQ(loaded.db_path, std::filesystem::path("/var/lib/jubildb"));
+  EXPECT_EQ(loaded.page_size, 4096U);
+  EXPECT_EQ(loaded.inline_threshold, 1024U);
+  EXPECT_EQ(loaded.group_commit_max_latency_ms, 5U);
+  EXPECT_EQ(loaded.cache_bytes, 64U * 1024U * 1024U);
+  EXPECT_EQ(loaded.listen_address, "127.0.0.1");
+  EXPECT_EQ(loaded.listen_port, 6767);
 }
 
 TEST(ConfigLoaderTest, RejectsInvalidInlineThreshold) {

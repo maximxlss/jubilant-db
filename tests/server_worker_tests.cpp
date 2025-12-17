@@ -72,11 +72,11 @@ TEST(WorkerTest, ProcessesOperationsAndEmitsResults) {
   Record record{};
   record.value = std::string{"value"};
 
-  Operation set_op{OperationType::kSet, "alpha", record};
-  Operation get_op{OperationType::kGet, "alpha", std::nullopt};
-  Operation delete_op{OperationType::kDelete, "alpha", std::nullopt};
+  Operation set_op{.type = OperationType::kSet, .key = "alpha", .value = record};
+  Operation get_op{.type = OperationType::kGet, .key = "alpha", .value = std::nullopt};
+  Operation delete_op{.type = OperationType::kDelete, .key = "alpha", .value = std::nullopt};
 
-  TransactionRequest request{1, {set_op, get_op, delete_op}};
+  TransactionRequest request{.id = 1, .operations = {set_op, get_op, delete_op}};
   ASSERT_TRUE(receiver.Enqueue(request));
 
   std::unique_lock results_lock{results_mutex};
@@ -96,6 +96,9 @@ TEST(WorkerTest, ProcessesOperationsAndEmitsResults) {
   EXPECT_EQ(read_result.type, OperationType::kGet);
   EXPECT_TRUE(read_result.success);
   ASSERT_TRUE(read_result.value.has_value());
+  if (!read_result.value.has_value()) {
+    return;
+  }
   EXPECT_EQ(std::get<std::string>(read_result.value->value), "value");
 
   EXPECT_FALSE(btree.Find("alpha").has_value());
@@ -110,8 +113,8 @@ TEST(ServerTest, SubmitsAndDrainsTransactions) {
 
   Record record{};
   record.value = static_cast<std::int64_t>(99);
-  Operation set_op{OperationType::kSet, "key", record};
-  TransactionRequest request{7, {set_op}};
+  Operation set_op{.type = OperationType::kSet, .key = "key", .value = record};
+  TransactionRequest request{.id = 7, .operations = {set_op}};
 
   ASSERT_TRUE(server.SubmitTransaction(request));
 

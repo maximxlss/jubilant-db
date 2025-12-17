@@ -27,7 +27,7 @@ public:
 private:
   [[nodiscard]] static std::uint32_t ComputeRecordCrc(const WalRecord& record);
   [[nodiscard]] static WalRecord FromFlatBuffer(const ::jubilant::wal::WalRecord& fb_record);
-  [[nodiscard]] std::optional<WalRecord> ReadNext(std::ifstream& stream) const;
+  [[nodiscard]] static std::optional<WalRecord> ReadNext(std::ifstream& stream);
   bool PersistRecord(const WalRecord& record);
 
   std::filesystem::path wal_dir_;
