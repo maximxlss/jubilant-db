@@ -1,7 +1,7 @@
 # Agent Guidelines
 
 - This repository expects contributors to address all `clang-tidy` diagnostics. Use the CMake presets (e.g., `dev-debug-tidy`) to surface tidy feedback locally.
-- Running `clang-format` before submitting is preferred; CI applies `clang-format` automatically and commits any fixes that occur during the workflow.
+- Running `clang-format` before submitting is required; CI enforces formatting but will not auto-fix or commit changes for you.
 - The CI pipeline relies on CMake presets (not raw configure flags). Use `cmake --preset dev-debug` for day-to-day builds and `cmake --preset dev-debug-tidy` for lints.
 - Keep tooling configurations in `.clang-format` and `.clang-tidy` authoritative; avoid wrapping imports in try/catch blocks.
 - Before making assumptions about behavior, scan the current code and documents (start with `README.md` and `CONTRIBUTING.md`) so changes align with the existing design.
@@ -19,4 +19,3 @@ Required format:
 
 * `feat:`, `fix:`, `perf:`, `refactor:`, `docs:`, `test:`, `build:`, `ci:`, `chore:`
 * Breaking change uses `!` + footer.
-

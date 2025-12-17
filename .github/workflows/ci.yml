@@ -2,38 +2,25 @@ name: CI
 
 on:
   push:
-    paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
   pull_request:
-    paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
   merge_group:
-    paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
 
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.event.merge_group.head_ref || github.ref }}
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  format:
-    name: Format
+  validate:
+    name: Validate
     runs-on: ubuntu-latest
-    outputs:
-      formatting_needed: ${{ steps.formatting.outputs.changed }}
-      auto_committed: ${{ steps.auto_commit.outputs.commit_hash != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
-          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
       - name: Prepare compiler cache
@@ -49,60 +36,8 @@ jobs:
       - name: Configure Debug preset
         run: cmake --preset dev-debug -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
-      - name: Apply clang-format
-        run: cmake --build --preset dev-debug --target clang-format
-
-      - name: Check for formatting changes
-        id: formatting
-        run: |
-          if git diff --quiet; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Fail on formatting changes for merge queue
-        if: steps.formatting.outputs.changed == 'true' && github.event_name == 'merge_group'
-        run: |
-          echo "::error::Formatting changes detected during merge queue validation. Please format the branch before re-queuing."
-          exit 1
-
-      - name: Auto-commit formatting changes
-        id: auto_commit
-        if: |
-          steps.formatting.outputs.changed == 'true' &&
-          github.event_name != 'merge_group' &&
-          (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false)
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore: apply clang-format (committed from CI)"
-          commit_user_name: jubilant-db-ci
-          commit_user_email: ci@jubilant-db.invalid
-
-  build-test-tidy:
-    name: Build, Test, and clang-tidy
-    runs-on: ubuntu-latest
-    needs: format
-    if: needs.format.outputs.auto_committed != 'true'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref || github.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
-
-      - name: Prepare compiler cache
-        uses: hendrikmuhs/ccache-action@v1.2
-        with:
-          key: ${{ github.job }}
-
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake ninja-build clang-format clang-tidy ccache
-
-      - name: Configure Debug preset
-        run: cmake --preset dev-debug -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+      - name: Check clang-format (no auto-fix)
+        run: cmake --build --preset dev-debug --target clang-format-check
 
       - name: Build
         run: cmake --build --preset dev-debug

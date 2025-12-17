@@ -65,6 +65,8 @@ The repository standardizes on CMake presets (3.25+ with Ninja recommended):
 2. Build artifacts and utilities: `cmake --build --preset dev-debug`
 3. Run tests: `ctest --preset dev-debug`
 
+Before opening a pull request, run `cmake --build --preset dev-debug --target clang-format` to keep diffs clean. CI enforces formatting but will fail instead of auto-fixing.
+
 Linting-friendly presets exist (`dev-debug-tidy`), and `clang-format`/`clang-tidy` targets are available from any configured build tree.
 
 ## Roadmap
