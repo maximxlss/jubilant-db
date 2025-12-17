@@ -1,5 +1,7 @@
 #include "txn/transaction_request.h"
 
+#include <algorithm>
+
 namespace jubilant::txn {
 
 bool TransactionRequest::Valid() const {
@@ -7,16 +9,15 @@ bool TransactionRequest::Valid() const {
     return false;
   }
 
-  for (const auto& operation : operations) {
+  return std::ranges::all_of(operations, [](const Operation& operation) {
     if (operation.key.empty()) {
       return false;
     }
     if (operation.type == OperationType::kSet && !operation.value.has_value()) {
       return false;
     }
-  }
-
-  return true;
+    return true;
+  });
 }
 
 } // namespace jubilant::txn

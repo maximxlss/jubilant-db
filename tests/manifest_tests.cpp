@@ -76,8 +76,12 @@ TEST(ManifestStoreTest, BumpsGenerationOnRewrite) {
 
   const auto loaded = store.Load();
   ASSERT_TRUE(loaded.has_value());
-  EXPECT_EQ(loaded->generation, 2U);
-  EXPECT_EQ(loaded->inline_threshold, 512U);
+  if (!loaded.has_value()) {
+    return;
+  }
+  const auto& loaded_manifest = loaded.value();
+  EXPECT_EQ(loaded_manifest.generation, 2U);
+  EXPECT_EQ(loaded_manifest.inline_threshold, 512U);
 }
 
 TEST(ManifestStoreTest, LoadRejectsInvalidManifestOnDisk) {
