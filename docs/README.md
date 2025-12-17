@@ -17,6 +17,7 @@ This index standardizes where to find design, implementation, and roadmap materi
 
 * **Near-term steps:** The README surface roadmap outlines the next few iterations beyond v0.0.1.
 * **Longer horizon:** [`FUTURE_UPDATES.md`](../FUTURE_UPDATES.md) tracks deeper durability, transaction, and protocol work.
+* **Full server buildout:** [`docs/server-roadmap.md`](server-roadmap.md) sequences milestones from schemas through wire protocol and operational tooling.
 
 ## Contribution and tooling
 
