@@ -224,6 +224,7 @@ if(JUBILANT_BUILD_TESTS)
     tests/btree_tests.cpp
     tests/checkpoint_tests.cpp
     tests/config_tests.cpp
+    tests/integration/dual_client_integration_tests.cpp
     tests/lock_manager_tests.cpp
     tests/manifest_tests.cpp
     tests/pager_tests.cpp

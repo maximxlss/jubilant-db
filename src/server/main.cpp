@@ -38,6 +38,8 @@ struct ParseResult {
 ParseResult ParseArgs(int argc, char** argv) {
   ParseResult result{};
   CliOptions options{};
+  bool help_requested = false;
+  bool invalid_args = false;
 
   for (int i = 1; i < argc; ++i) {
     const std::string arg{argv[i]};
@@ -63,10 +65,18 @@ ParseResult ParseArgs(int argc, char** argv) {
         PrintUsage(argv[0]);
         return result;
       }
+    } else if (arg == "--help" || arg == "-h") {
+      help_requested = true;
+      break;
     } else {
-      PrintUsage(argv[0]);
-      return result;
+      invalid_args = true;
+      break;
     }
+  }
+
+  if (help_requested || invalid_args) {
+    PrintUsage(argv[0]);
+    return result;
   }
 
   if (options.config_path.empty()) {
