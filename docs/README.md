@@ -6,6 +6,7 @@ This index standardizes where to find design, implementation, and roadmap materi
 
 * **Product + storage spec:** [`MAIN_SPECIFICATION.md`](../MAIN_SPECIFICATION.md) captures semantics, protocol, storage layout, and operational rules for v1.0.
 * **Technical stack:** [`TECH_SPECIFICATION.md`](../TECH_SPECIFICATION.md) documents the toolchain, build system, and dependencies.
+* **Wire protocol (v0.0.2 draft):** [`txn-wire-v0.0.2.md`](txn-wire-v0.0.2.md) details the length-prefixed JSON envelope for `set/get/del` transactions.
 
 ## Milestones and status
 
