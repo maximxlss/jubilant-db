@@ -65,7 +65,7 @@ std::string Base64Encode(std::span<const std::byte> input) {
 }
 
 void SetSocketTimeout(int socket_fd, std::chrono::milliseconds timeout) {
-  const struct timeval timeout_value{
+  const struct timeval timeout_value = {
       .tv_sec = static_cast<time_t>(timeout.count() / 1000),
       .tv_usec = static_cast<suseconds_t>((timeout.count() % 1000) * 1000),
   };

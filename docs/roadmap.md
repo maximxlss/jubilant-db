@@ -31,11 +31,14 @@ The items below are the critical spine that keeps durability and transaction sem
 
 ## Long-range evolution
 
-The long-horizon work focuses on resilience and operability once the single-node story is solid.
+The long-horizon work focuses on resilience and operability once the single-node story is solid and the parallel execution path is fully exercised in production-like settings.
 
 - **Resilience and HA:** replication with snapshot handoff, leader election with fencing, and PITR backups with verifiable restores.
+- **Richer data shapes:** typed collections (lists, sets, hashes) and batched operations once the core KV invariants are proven stable.
+- **Access controls and governance:** authentication, roles/ACLs, audit logging, and policy hooks so multiple teams can share a node safely.
+- **Performance and parallelism:** adaptive worker scheduling, parallel background maintenance (checkpoint/GC), and throughput drills that stress strict 2PL under load.
 - **Scale and tenancy:** namespaced manifests, quotas, rate limiting, and connection pooling in clients plus CDC/connectors.
-- **Operational rigor:** config reloads, chaos drills (disk corruption, partitions), audit logging, encryption at rest, and compliance-grade observability.
+- **Operational rigor:** config reloads, chaos drills (disk corruption, partitions), encryption at rest, and compliance-grade observability.
 - **Distribution:** container images, IaC/Helm modules, and rolling-upgrade guidance tied to checkpoint/PITR safeguards.
 
 ## How to read this roadmap
