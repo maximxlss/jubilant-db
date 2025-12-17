@@ -29,8 +29,33 @@ jobs:
 
       - name: Detect clang-tidy skip marker
         id: skip_tidy
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || '' }}
+          BASE_REF: ${{ github.event.pull_request.base.ref || github.event.merge_group.base_ref || 'main' }}
         run: |
-          if git log -1 --pretty=%B | grep -qi "\[skip-tidy\]"; then
+          set -euo pipefail
+
+          base_ref="$BASE_SHA"
+          if [ -z "$base_ref" ]; then
+            git fetch origin "$BASE_REF" --depth=1
+            base_ref="origin/$BASE_REF"
+          fi
+
+          skip=true
+          commit_range=$(git rev-list --no-merges "${base_ref}..HEAD")
+
+          if [ -z "$commit_range" ]; then
+            skip=false
+          fi
+
+          for sha in $commit_range; do
+            if ! git show -s --format=%B "$sha" | grep -qi "\[skip-tidy\]"; then
+              skip=false
+              break
+            fi
+          done
+
+          if [ "$skip" = true ]; then
             echo "Clang-tidy run skipped by commit message marker."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
