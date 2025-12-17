@@ -1,6 +1,6 @@
 # Documentation index
 
-This index is the entry point for engineers and contributors. It groups the specs, how-to guides, and roadmaps so the project reads like a real product as it grows.
+This index is the entry point for engineers and contributors. It groups the specs, how-to guides, and roadmaps so the project reads like a real product as it grows while staying anchored to the north-star vision in [`MAIN_SPECIFICATION.md`](../MAIN_SPECIFICATION.md).
 
 ## Start here
 

@@ -1,6 +1,6 @@
 # Roadmap
 
-This roadmap folds the near-term and long-range plans into one place so contributors can see what is done, what is next, and how the work threads together. The v0.0.2 ExecPlan stays in [`docs/v0.0.2-plan.md`](v0.0.2-plan.md) for milestone-specific detail.
+This roadmap folds the near-term and long-range plans into one place so contributors can see what is done, what is next, and how the work threads together. It is intentionally aligned with the product direction captured in [`MAIN_SPECIFICATION.md`](../MAIN_SPECIFICATION.md) so the outside-facing README and the delivery path stay consistent. The v0.0.2 ExecPlan stays in [`docs/v0.0.2-plan.md`](v0.0.2-plan.md) for milestone-specific detail.
 
 ## Release line and current status
 

@@ -5,19 +5,34 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Status: Active Scaffolding](https://img.shields.io/badge/status-active%20scaffolding-orange)](MAIN_SPECIFICATION.md)
 
-Jubilant DB is a local-first key–value store for small teams that want to ship features fast without babysitting infrastructure. You get a single binary, a friendly CLI, and the option to flip on the server preview when you need remote clients—all while keeping the same workflow.
+Jubilant DB is a single-node key–value database built for teams that want **Redis-like speed** with **transactional safety** and **zero-ops packaging**. The aim is a polished v1 that stays fast on one box while giving product teams honest durability, predictable transactions, and a protocol they can embed anywhere.
 
-**Why teams pick it**
+**Who it’s for (when v1 lands)**
 
-- **Easy start:** initialize a database directory and try reads/writes in minutes with `jubectl`.
-- **Remote-ready:** the v0.0.2 server preview lets you switch on a network endpoint without changing your data model.
-- **Safe by default:** durability, validation, and restart checks are built in so you can experiment without losing data.
+- Product teams that need a dependable store for feature flags, personalization state, or job metadata without standing up a fleet.
+- API builders who want a compact, C-compatible protocol that works the same on embedded devices and cloud VMs.
+- Operators who prefer predictable single-node resilience (strict 2PL, WAL, repair flows) over distributed complexity.
+
+**Vision anchored in the spec**
+
+- **Ready-to-ship semantics:** strict serializable transactions over a hybrid memory+disk engine with B+Tree paging, WAL, and value-log storage. See [`MAIN_SPECIFICATION.md`](MAIN_SPECIFICATION.md) for the end-state.
+- **Protocol confidence:** a FlatBuffers-based, C-friendly binary protocol designed for client libraries and gateways.
+- **Operational calm:** automatic durability guardrails, validation, and observability so small teams can trust a single binary.
+
+The project is still in active scaffolding. The README and docs keep the “outside view” close to the end-state while clearly labeling what is unfinished today.
 
 ## Release status
 
-- **Current version: v0.0.2 (networked transaction preview).** The JSON wire framing, Python client bundle, server bootstrap, and `jubectl --remote` flow are in place for teams to try remote calls early.
-- **Outstanding for true v0.0.2 sign-off:** end-to-end integration tests that drive `set/get/del` through the network stack and verify durable replay on restart.
+- **Current version: v0.0.2 (networked transaction preview).** A JSON wire envelope, Python client bundle, server bootstrap, and `jubectl --remote` exist so you can trial remote calls.
+- **Not yet production-ready:** we still owe end-to-end integration coverage that drives `set/get/del` through the network stack and proves durable replay on restart.
 - Historical acceptance notes for the initial CLI-only milestone remain in [`FIRST_STEPS.md`](FIRST_STEPS.md).
+
+## What we're building toward
+
+- **Local-first agility:** initialize, iterate, and validate on your laptop with the same semantics that ship to prod.
+- **Flip to remote when needed:** enable the network endpoint without reworking schemas or tooling.
+- **Batteries included durability:** manifest tracking, mirrored superblocks, WAL replay, and repair flows keep a single node honest.
+- **Smooth observability:** INFO/metrics surfaces and validation tools so developers and operators trust the data path.
 
 ## What you get today
 
@@ -25,6 +40,12 @@ Jubilant DB is a local-first key–value store for small teams that want to ship
 - **Networked preview:** `jubectl --remote`, the Python client bundle, and the server bootstrap share the same JSON envelope so you can point a client at a port and see remote calls work.
 - **Durability guardrails:** Manifest tracking, mirrored superblocks, and WAL replay on startup keep the database recoverable after crashes.
 - **Early observability:** `jubectl stats` and `jubectl validate` show you the metadata being written, checkpoint progress, and corruption checks so you can trust what you see.
+
+## Who might use it next
+
+- Teams bringing a sidecar-friendly datastore to edge/embedded deployments.
+- SaaS backends that want a fast transaction core for request-scoped state without adding another hosted dependency.
+- Framework authors exploring a Redis-like developer experience with stronger transactional semantics.
 
 ## Quickstart
 
