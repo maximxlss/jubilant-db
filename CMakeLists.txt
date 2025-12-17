@@ -14,6 +14,13 @@ option(JUBILANT_BUILD_TESTS "Build Jubilant DB tests" ON)
 option(JUBILANT_ENABLE_CLANG_TIDY "Enable clang-tidy diagnostics" OFF)
 set(JUBILANT_CLANG_TIDY_COMMAND "")
 
+function(jubildb_enable_clang_tidy target_name)
+  if(JUBILANT_CLANG_TIDY_COMMAND)
+    set_property(TARGET ${target_name} PROPERTY CXX_CLANG_TIDY
+                 "${JUBILANT_CLANG_TIDY_COMMAND}")
+  endif()
+endfunction()
+
 # Third-party build options ----------------------------------------------------
 set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(FLATBUFFERS_BUILD_FLATLIB ON CACHE BOOL "" FORCE)
@@ -56,7 +63,6 @@ if(JUBILANT_ENABLE_CLANG_TIDY)
         "${CLANG_TIDY_EXECUTABLE}"
         "--config-file=${CMAKE_SOURCE_DIR}/.clang-tidy"
     )
-    set(CMAKE_CXX_CLANG_TIDY ${JUBILANT_CLANG_TIDY_COMMAND})
   else()
     message(WARNING "clang-tidy requested but not found on PATH")
   endif()
@@ -137,9 +143,7 @@ target_compile_options(jubildb
     -Wextra
     -Wpedantic
 )
-if(JUBILANT_CLANG_TIDY_COMMAND)
-  set_property(TARGET jubildb PROPERTY CXX_CLANG_TIDY "${JUBILANT_CLANG_TIDY_COMMAND}")
-endif()
+jubildb_enable_clang_tidy(jubildb)
 
 # CLI --------------------------------------------------------------------------
 add_executable(jubectl
@@ -157,9 +161,7 @@ target_compile_options(jubectl
     -Wextra
     -Wpedantic
 )
-if(JUBILANT_CLANG_TIDY_COMMAND)
-  set_property(TARGET jubectl PROPERTY CXX_CLANG_TIDY "${JUBILANT_CLANG_TIDY_COMMAND}")
-endif()
+jubildb_enable_clang_tidy(jubectl)
 
 # Tests ------------------------------------------------------------------------
 if(JUBILANT_BUILD_TESTS)
@@ -196,9 +198,7 @@ if(JUBILANT_BUILD_TESTS)
   include(GoogleTest)
   gtest_discover_tests(unit_tests)
 
-  if(JUBILANT_CLANG_TIDY_COMMAND)
-    set_property(TARGET unit_tests PROPERTY CXX_CLANG_TIDY "${JUBILANT_CLANG_TIDY_COMMAND}")
-  endif()
+  jubildb_enable_clang_tidy(unit_tests)
 endif()
 
 file(GLOB_RECURSE JUBILANT_FORMAT_SOURCES CONFIGURE_DEPENDS

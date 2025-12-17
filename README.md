@@ -86,6 +86,8 @@ cmake --preset dev-debug-tidy
 cmake --build --preset dev-debug-tidy
 ```
 
+These presets scope clang-tidy to in-repo targets so linting covers Jubilant DB code without burning time on third-party dependencies.
+
 `clang-format`/`clang-tidy` targets remain available from any configured build tree when you need a single-tool pass.
 
 ## Roadmap
