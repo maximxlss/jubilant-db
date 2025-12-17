@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
+#include <random>
 #include <string_view>
 
 namespace jubilant::config {
@@ -10,7 +11,9 @@ namespace {
 
 std::filesystem::path WriteTempConfig(const std::filesystem::path& name,
                                       std::string_view contents) {
-  const auto temp_dir = std::filesystem::temp_directory_path() / "jubildb_config_tests";
+  const auto temp_dir =
+      std::filesystem::temp_directory_path() /
+      std::filesystem::path("jubildb_config_tests-" + std::to_string(std::random_device{}()));
   std::filesystem::create_directories(temp_dir);
 
   const auto config_path = temp_dir / name;
@@ -76,6 +79,23 @@ TEST(ConfigLoaderTest, RejectsInvalidInlineThreshold) {
 
   const auto cfg = ConfigLoader::LoadFromFile(path);
   EXPECT_FALSE(cfg.has_value());
+}
+
+TEST(ConfigLoaderTest, AllowsEphemeralPort) {
+  const auto path = WriteTempConfig(
+      "ephemeral.toml",
+      "db_path = \"./ephemeral\"\nlisten_address = \"127.0.0.1\"\nlisten_port = 0\n");
+
+  const auto cfg = ConfigLoader::LoadFromFile(path);
+  ASSERT_TRUE(cfg.has_value());
+  if (!cfg.has_value()) {
+    return;
+  }
+
+  const auto& loaded = cfg.value();
+  EXPECT_EQ(loaded.db_path, std::filesystem::path("./ephemeral"));
+  EXPECT_EQ(loaded.listen_address, "127.0.0.1");
+  EXPECT_EQ(loaded.listen_port, 0);
 }
 
 } // namespace jubilant::config

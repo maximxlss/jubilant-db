@@ -188,6 +188,7 @@ set(JUBILANT_PYTHON_CLIENT_SCRIPTS
   ${CMAKE_CURRENT_SOURCE_DIR}/tools/clients/python/framing_probe.py
   ${CMAKE_CURRENT_SOURCE_DIR}/tools/clients/python/jubilant_client.py
   ${CMAKE_CURRENT_SOURCE_DIR}/tools/clients/python/jubectl_client.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/tools/clients/python/server_harness.py
 )
 
 set(JUBILANT_PYTHON_CLIENT_OUTPUT_DIR
