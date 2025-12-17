@@ -32,6 +32,7 @@ This index is the entry point for engineers and contributors. It groups the spec
 
 - **Upcoming storage + transaction work:** [`FUTURE_UPDATES.md`](../FUTURE_UPDATES.md) captures the broader roadmap for durability, transactions, protocol, and operations.
 - **Server buildout sequence:** [`server-roadmap.md`](server-roadmap.md) strings together schemas, runtime milestones, and operational tooling.
+- **Long-range dependency graph:** [`long-range-roadmap.md`](long-range-roadmap.md) enumerates a numbered task graph with blocking edges and acceptance checkpoints for the far-horizon plan.
 
 ## How to navigate
 
