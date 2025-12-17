@@ -6,6 +6,7 @@
 - Keep tooling configurations in `.clang-format` and `.clang-tidy` authoritative; avoid wrapping imports in try/catch blocks.
 - Before making assumptions about behavior, scan the current code and documents (start with `README.md` and `CONTRIBUTING.md`) so changes align with the existing design.
 - Developer build instructions live in `CONTRIBUTING.md`; user-facing build guidance is in `README.md`.
+- Clang-tidy skipping is reserved for non-semantic or documentation-only commits. The CI workflow honors the `[skip-tidy]` commit marker to bypass clang-tidy, but you should prefer running clang-tidy locally and leave CI linting on for any semantic or functional change.
 - For new features or significant changes, consider updating `MAIN_SPECIFICATION.md` and `TECH_SPECIFICATION.md` to reflect the intended design.
 - DO NOT, I repeat DO NOT write incomplete, untested, incorrect, or one you are unsure about code and documentataion. Always strive for correctness and completeness in your contributions. Report to the user if you are unsure about any part of the task. Report to the user if you find any ambiguities or contradictions in the provided information. Report to the user if you have failed to deliver correct and complete code or documentation.
 
