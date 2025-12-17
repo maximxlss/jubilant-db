@@ -1,6 +1,6 @@
 # Documentation index
 
-This index is the entry point for engineers and contributors. It groups the specs, how-to guides, and roadmaps so the project reads like a real product as it grows.
+This index is the entry point for engineers and contributors. It groups the specs, how-to guides, and roadmaps so the project reads like a real product as it grows while staying anchored to the north-star vision in [`MAIN_SPECIFICATION.md`](../MAIN_SPECIFICATION.md).
 
 ## Start here
 
@@ -28,13 +28,7 @@ This index is the entry point for engineers and contributors. It groups the spec
 ## Milestones and acceptance
 
 - **v0.0.1 acceptance checklist:** [`FIRST_STEPS.md`](../FIRST_STEPS.md) tracks the definition of done for the initial CLI-driven store and the evidence provided by unit tests.
-- **Planned v0.0.2 work:** [`docs/v0.0.2-plan.md`](v0.0.2-plan.md) outlines the next envelope iteration and runtime wiring.
-
-## Roadmaps
-
-- **Upcoming storage + transaction work:** [`FUTURE_UPDATES.md`](../FUTURE_UPDATES.md) captures the broader roadmap for durability, transactions, protocol, and operations.
-- **Server buildout sequence:** [`server-roadmap.md`](server-roadmap.md) strings together schemas, runtime milestones, and operational tooling.
-- **Long-range dependency graph:** [`long-range-roadmap.md`](long-range-roadmap.md) enumerates a numbered task graph with blocking edges and acceptance checkpoints for the far-horizon plan.
+- **Current release plan:** [`docs/v0.0.2-plan.md`](v0.0.2-plan.md) holds the ExecPlan for the networked-transaction milestone. The consolidated roadmap lives in [`docs/roadmap.md`](roadmap.md).
 
 ## How to navigate
 
