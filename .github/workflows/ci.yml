@@ -27,6 +27,16 @@ jobs:
         with:
           key: ${{ github.job }}
 
+      - name: Detect clang-tidy skip marker
+        id: skip_tidy
+        run: |
+          if git log -1 --pretty=%B | grep -qi "\[skip-tidy\]"; then
+            echo "Clang-tidy run skipped by commit message marker."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install build dependencies
         run: |
           sudo apt-get update
@@ -45,7 +55,9 @@ jobs:
         run: ctest --preset dev-debug
 
       - name: Configure clang-tidy preset
+        if: steps.skip_tidy.outputs.skip != 'true'
         run: cmake --preset dev-debug-tidy -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Run clang-tidy build
+        if: steps.skip_tidy.outputs.skip != 'true'
         run: cmake --build --preset dev-debug-tidy --target unit_tests

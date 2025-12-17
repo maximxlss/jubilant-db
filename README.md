@@ -79,7 +79,14 @@ The repository standardizes on CMake presets (3.25+ with Ninja recommended):
 
 Before opening a pull request, run `cmake --build --preset dev-debug --target clang-format` to keep diffs clean. CI enforces formatting but will fail instead of auto-fixing.
 
-Linting-friendly presets exist (`dev-debug-tidy`), and `clang-format`/`clang-tidy` targets are available from any configured build tree.
+Linting-friendly presets exist (`dev-debug-tidy`) and run clang-tidy across every target (library, CLI, and tests) during compilation:
+
+```
+cmake --preset dev-debug-tidy
+cmake --build --preset dev-debug-tidy
+```
+
+`clang-format`/`clang-tidy` targets remain available from any configured build tree when you need a single-tool pass.
 
 ## Roadmap
 

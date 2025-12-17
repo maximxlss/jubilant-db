@@ -3,10 +3,12 @@
 Thanks for helping improve Jubilant DB! The following practices keep changes moving smoothly:
 
 ## Tooling expectations
-- **clang-tidy is mandatory.** Resolve all clang-tidy findings. You can enable tidy locally with the provided CMake preset:
-  - Configure/build with `cmake --preset dev-debug-tidy` (or the matching release preset) so diagnostics are emitted during compilation.
+- **clang-tidy is mandatory.** Resolve all clang-tidy findings. Configure with a tidy preset so clang-tidy runs against every target (library, CLI, and tests) during compilation:
+  - `cmake --preset dev-debug-tidy`
+  - `cmake --build --preset dev-debug-tidy`
 - **clang-format is required.** Run `cmake --build --preset dev-debug --target clang-format` before sending a pull request. CI enforces formatting but will fail instead of auto-fixing.
 - CMake presets drive both local and CI builds. Use `cmake --preset dev-debug` for regular builds/tests and the tidy presets for linting.
+- **Skip clang-tidy only for non-semantic changes.** CI will skip the clang-tidy build if the latest commit message contains `[skip-tidy]`. Use this marker only when the commit is documentation-only or strictly non-semantic (e.g., typo fixes, comment updates, or constant tweaks). Prefer running clang-tidy locally even for trivial changes; for everything else, keep clang-tidy enabled both locally and in CI.
 
 ## Developer build workflow
 The repository is intentionally preset-driven so contributors can get consistent builds locally and in CI. A typical loop is:

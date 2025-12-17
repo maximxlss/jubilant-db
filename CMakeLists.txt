@@ -53,9 +53,10 @@ if(JUBILANT_ENABLE_CLANG_TIDY)
   find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy)
   if(CLANG_TIDY_EXECUTABLE)
     set(JUBILANT_CLANG_TIDY_COMMAND
-        ${CLANG_TIDY_EXECUTABLE};
-        --config-file=${CMAKE_SOURCE_DIR}/.clang-tidy
+        "${CLANG_TIDY_EXECUTABLE}"
+        "--config-file=${CMAKE_SOURCE_DIR}/.clang-tidy"
     )
+    set(CMAKE_CXX_CLANG_TIDY ${JUBILANT_CLANG_TIDY_COMMAND})
   else()
     message(WARNING "clang-tidy requested but not found on PATH")
   endif()
