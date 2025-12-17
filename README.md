@@ -51,6 +51,20 @@ jubectl validate <db_dir>
 
 Keys must be non-empty UTF-8 strings. Values may be raw bytes (hex), UTF-8 strings, or signed 64-bit integers. `stats` prints manifest/superblock metadata and checkpoint state; `validate` replays manifest and superblock validation to flag corruption.
 
+Remote envelope mode (v0.0.2 draft) reuses the same JSON framing described in
+[`docs/txn-wire-v0.0.2.md`](docs/txn-wire-v0.0.2.md):
+
+```sh
+jubectl --remote 127.0.0.1:6767 set <key> <bytes|string|int> <value>
+jubectl --remote 127.0.0.1:6767 get <key>
+jubectl --remote 127.0.0.1:6767 del <key>
+jubectl --remote 127.0.0.1:6767 --txn-id 42 txn txn.json
+```
+
+Transaction files may include a full request object or just an `operations` array; the CLI injects a
+transaction id when one is not present. Byte values are passed as hex on the CLI and base64-encoded on
+the wire.
+
 ### Prototype Python client (v0.0.2 envelope)
 
 The `tools/clients/python/jubilant_client.py` module speaks the length-prefixed JSON envelope defined in [`docs/txn-wire-v0.0.2.md`](docs/txn-wire-v0.0.2.md). A thin CLI wrapper is available:
