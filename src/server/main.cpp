@@ -76,7 +76,7 @@ ParseResult ParseArgs(int argc, char** argv) {
 
   if (help_requested || invalid_args) {
     PrintUsage(argv[0]);
-    return std::nullopt;
+    return result;
   }
 
   if (options.config_path.empty()) {
