@@ -14,6 +14,7 @@ This index is the entry point for engineers and contributors. It groups the spec
 
 - **Server runtime scaffolding:** [`server-runtime.md`](server-runtime.md) explains the transaction receiver, worker pool, and completion queue that underpin the future wire protocol.
 - **Wire envelope (v0.0.2 prototype):** [`txn-wire-v0.0.2.md`](txn-wire-v0.0.2.md) details the length-prefixed JSON framing and provides sample payloads.
+- **FlatBuffers transition plan:** [`flatbuffers-wire-transition.md`](flatbuffers-wire-transition.md) is a near-complete guide for moving from JSON to the long-term FlatBuffers wire protocol, including rollout phases, risks, and validation steps.
 - **CMake/CI setup:** [`ci-setup.md`](ci-setup.md) documents how to reproduce CI locally using presets and helper targets.
 
 ## Clients and tooling
