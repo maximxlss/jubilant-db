@@ -30,11 +30,23 @@ void PrintUsage(const char* binary) {
             << " --config <path> [--workers <count>] [--backlog <pending_connections>]\n";
 }
 
-std::optional<CliOptions> ParseArgs(int argc, char** argv) {
+struct ParseResult {
+  std::optional<CliOptions> options;
+  bool help_requested{false};
+};
+
+ParseResult ParseArgs(int argc, char** argv) {
+  ParseResult result{};
   CliOptions options{};
 
   for (int i = 1; i < argc; ++i) {
     const std::string arg{argv[i]};
+    if (arg == "--help" || arg == "-h") {
+      PrintUsage(argv[0]);
+      result.help_requested = true;
+      return result;
+    }
+
     if (arg == "--config" && i + 1 < argc) {
       options.config_path = argv[++i];
     } else if (arg == "--workers" && i + 1 < argc) {
@@ -42,34 +54,32 @@ std::optional<CliOptions> ParseArgs(int argc, char** argv) {
         options.workers = static_cast<std::size_t>(std::stoul(argv[++i]));
       } catch (const std::exception&) {
         PrintUsage(argv[0]);
-        return std::nullopt;
+        return result;
       }
     } else if (arg == "--backlog" && i + 1 < argc) {
       try {
         options.backlog = std::stoi(argv[++i]);
       } catch (const std::exception&) {
         PrintUsage(argv[0]);
-        return std::nullopt;
+        return result;
       }
-    } else if (arg == "--help" || arg == "-h") {
-      PrintUsage(argv[0]);
-      return std::nullopt;
     } else {
       PrintUsage(argv[0]);
-      return std::nullopt;
+      return result;
     }
   }
 
   if (options.config_path.empty()) {
     PrintUsage(argv[0]);
-    return std::nullopt;
+    return result;
   }
 
   if (options.backlog <= 0) {
     options.backlog = 1;
   }
 
-  return options;
+  result.options = options;
+  return result;
 }
 
 std::size_t ResolveWorkerCount(std::size_t requested) {
@@ -84,10 +94,14 @@ std::size_t ResolveWorkerCount(std::size_t requested) {
 
 int main(int argc, char** argv) {
   try {
-    const auto options = ParseArgs(argc, argv);
-    if (!options.has_value()) {
+    const auto parse_result = ParseArgs(argc, argv);
+    if (parse_result.help_requested) {
+      return 0;
+    }
+    if (!parse_result.options.has_value()) {
       return 1;
     }
+    const auto& options = parse_result.options;
 
     const auto config = jubilant::config::ConfigLoader::LoadFromFile(options->config_path);
     if (!config.has_value()) {
