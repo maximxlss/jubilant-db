@@ -2,13 +2,17 @@
 #include "server/server.h"
 #include "storage/simple_store.h"
 
+#include <algorithm>
 #include <array>
 #include <cerrno>
 #include <chrono>
+#include <csignal>
 #include <cstdlib>
+#include <fcntl.h>
 #include <filesystem>
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
+#include <poll.h>
 #include <random>
 #include <stdexcept>
 #include <string>
@@ -27,6 +31,7 @@ namespace {
 
 struct CommandResult {
   int exit_code{0};
+  bool timed_out{false};
   std::string output;
 };
 
@@ -83,7 +88,8 @@ std::string PythonExecutable() {
 
 CommandResult RunCommand(const std::vector<std::string>& args,
                          const std::filesystem::path& working_dir,
-                         const std::vector<std::pair<std::string, std::string>>& env = {}) {
+                         const std::vector<std::pair<std::string, std::string>>& env = {},
+                         std::chrono::milliseconds timeout = std::chrono::milliseconds{5000}) {
   int pipe_fds[2]{-1, -1};
   if (pipe(pipe_fds) != 0) {
     throw std::runtime_error("Failed to create pipe for subprocess");
@@ -129,35 +135,68 @@ CommandResult RunCommand(const std::vector<std::string>& args,
   }
 
   close(pipe_fds[1]);
+  const int current_flags = fcntl(pipe_fds[0], F_GETFL);
+  fcntl(pipe_fds[0], F_SETFL, current_flags | O_NONBLOCK);
+
+  const auto deadline = std::chrono::steady_clock::now() + timeout;
+  bool timed_out = false;
   std::string output;
   std::array<char, 4096> buffer{};
+  int status = 0;
   while (true) {
-    const auto bytes_read = read(pipe_fds[0], buffer.data(), buffer.size());
-    if (bytes_read > 0) {
-      output.append(buffer.data(), static_cast<std::size_t>(bytes_read));
-      continue;
+    const auto now = std::chrono::steady_clock::now();
+    if (now >= deadline && !timed_out) {
+      timed_out = true;
+      kill(pid, SIGKILL);
     }
-    if (bytes_read == -1 && errno == EINTR) {
-      continue;
+
+    pollfd poll_fd{};
+    poll_fd.fd = pipe_fds[0];
+    poll_fd.events = POLLIN;
+    const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now);
+    const int wait_ms =
+        timed_out
+            ? 0
+            : static_cast<int>(std::max<std::chrono::milliseconds::rep>(remaining.count(), 0LL));
+    const int ready = poll(&poll_fd, 1, wait_ms);
+    if (ready > 0 && (poll_fd.revents & POLLIN) != 0) {
+      while (true) {
+        const auto bytes_read = read(pipe_fds[0], buffer.data(), buffer.size());
+        if (bytes_read > 0) {
+          output.append(buffer.data(), static_cast<std::size_t>(bytes_read));
+          continue;
+        }
+        if (bytes_read == -1 && errno == EINTR) {
+          continue;
+        }
+        break;
+      }
     }
-    break;
+
+    const auto waited = waitpid(pid, &status, timed_out ? 0 : WNOHANG);
+    if (waited == pid) {
+      while (true) {
+        const auto bytes_read = read(pipe_fds[0], buffer.data(), buffer.size());
+        if (bytes_read > 0) {
+          output.append(buffer.data(), static_cast<std::size_t>(bytes_read));
+          continue;
+        }
+        if (bytes_read == -1 && errno == EINTR) {
+          continue;
+        }
+        break;
+      }
+      break;
+    }
+    if (waited == -1 && errno != EINTR) {
+      throw std::runtime_error("waitpid failed");
+    }
   }
   close(pipe_fds[0]);
 
-  int status = 0;
-  while (true) {
-    const auto waited = waitpid(pid, &status, 0);
-    if (waited == -1 && errno == EINTR) {
-      continue;
-    }
-    if (waited == -1) {
-      throw std::runtime_error("waitpid failed");
-    }
-    break;
-  }
-
   CommandResult result{};
   result.exit_code = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+  result.timed_out = timed_out;
   result.output = std::move(output);
   return result;
 }
@@ -186,7 +225,8 @@ nlohmann::json RunPythonClient(const std::filesystem::path& client_dir, std::str
   const auto result = RunCommand(args, client_dir,
                                  {{"PYTHONPATH", client_dir.string()}, {"PYTHONUNBUFFERED", "1"}});
   if (result.exit_code != 0) {
-    throw std::runtime_error("Python client failed: " + result.output);
+    throw std::runtime_error(std::string{"Python client failed"} +
+                             (result.timed_out ? " (timed out)" : "") + ": " + result.output);
   }
   return ParseJson(result.output);
 }
@@ -204,7 +244,8 @@ nlohmann::json RunJubectlRemote(const std::filesystem::path& binary, std::string
 
   const auto result = RunCommand(args, std::filesystem::current_path());
   if (result.exit_code != 0) {
-    throw std::runtime_error("jubectl failed: " + result.output);
+    throw std::runtime_error(std::string{"jubectl failed"} +
+                             (result.timed_out ? " (timed out)" : "") + ": " + result.output);
   }
   return ParseJson(result.output);
 }

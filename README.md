@@ -100,7 +100,7 @@ config and advertises the bound port after any OS reassignment.
 db_path = "/var/lib/jubildb"
 ```
 
-Optional settings are validated on load (non-zero page size, inline threshold within the page, positive cache size, listen port within `1-65535`):
+Optional settings are validated on load (non-zero page size, inline threshold within the page, positive cache size, listen port within `0-65535`, with `0` requesting an ephemeral binding):
 
 ```toml
 db_path = "./data"
@@ -115,6 +115,9 @@ listen_port = 7777
 Defaults mirror the current implementation: 4 KiB pages, 1 KiB inline threshold, a 64 MiB cache, 5 ms max group-commit latency,
 and `127.0.0.1:6767` for the listening socket. The `jubildb_server` bootstrap uses the same file to seed on-disk metadata (page
 size and inline threshold) on first run and to determine the binding address for the network adapter.
+
+Set `listen_port = 0` in the configuration to request an ephemeral port during tests; the bound port is emitted in the startup
+banner so clients can discover the dynamic endpoint.
 
 ## Documentation map
 

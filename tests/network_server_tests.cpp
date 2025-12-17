@@ -11,9 +11,12 @@
 #include <netinet/in.h>
 #include <nlohmann/json.hpp>
 #include <optional>
+#include <random>
 #include <string>
+#include <string_view>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <system_error>
 #include <unistd.h>
 
 using jubilant::server::NetworkServer;
@@ -98,19 +101,45 @@ std::optional<nlohmann::json> ReadJsonFrame(int socket_fd) {
   return json;
 }
 
+struct TempDirGuard {
+  explicit TempDirGuard(std::string_view prefix)
+      : path(std::filesystem::temp_directory_path() /
+             std::filesystem::path(std::string(prefix) + "-" +
+                                   std::to_string(std::random_device{}()))) {
+    std::filesystem::create_directories(path);
+  }
+
+  ~TempDirGuard() {
+    std::error_code error_code;
+    std::filesystem::remove_all(path, error_code);
+  }
+
+  std::filesystem::path path;
+};
+
+struct ServerGuard {
+  jubilant::server::Server& core;
+  jubilant::server::NetworkServer& network;
+
+  ~ServerGuard() {
+    network.Stop();
+    core.Stop();
+  }
+};
+
 } // namespace
 
 TEST(NetworkServerTest, ExecutesTransactionsOverTcp) {
-  const auto dir = std::filesystem::temp_directory_path() / "jubilant-network-server";
-  std::filesystem::remove_all(dir);
+  TempDirGuard dir{"jubilant-network-server"};
 
-  Server core_server{dir, 2};
+  Server core_server{dir.path, 2};
   core_server.Start();
 
   NetworkServer::Config config{};
   config.host = "127.0.0.1";
   config.port = 0;
   NetworkServer network{core_server, config};
+  const ServerGuard guard{.core = core_server, .network = network};
   ASSERT_TRUE(network.Start());
   ASSERT_GT(network.port(), 0);
 
@@ -167,16 +196,12 @@ TEST(NetworkServerTest, ExecutesTransactionsOverTcp) {
   EXPECT_EQ(operation_json.at("value").at("data"), "bravo");
 
   ::close(socket_fd);
-
-  network.Stop();
-  core_server.Stop();
 }
 
 TEST(NetworkServerTest, ClosesConnectionWhenResponseExceedsCap) {
-  const auto dir = std::filesystem::temp_directory_path() / "jubilant-network-server-cap";
-  std::filesystem::remove_all(dir);
+  TempDirGuard dir{"jubilant-network-server-cap"};
 
-  Server core_server{dir, 2};
+  Server core_server{dir.path, 2};
   core_server.Start();
 
   // Seed a value larger than 1 MiB directly through the core server.
@@ -204,6 +229,7 @@ TEST(NetworkServerTest, ClosesConnectionWhenResponseExceedsCap) {
   config.host = "127.0.0.1";
   config.port = 0;
   NetworkServer network{core_server, config};
+  const ServerGuard guard{.core = core_server, .network = network};
   ASSERT_TRUE(network.Start());
   ASSERT_GT(network.port(), 0);
 
@@ -231,7 +257,4 @@ TEST(NetworkServerTest, ClosesConnectionWhenResponseExceedsCap) {
   EXPECT_FALSE(get_response.has_value());
 
   ::close(socket_fd);
-
-  network.Stop();
-  core_server.Stop();
 }

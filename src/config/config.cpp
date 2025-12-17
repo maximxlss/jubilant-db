@@ -56,7 +56,7 @@ std::optional<Config> ConfigLoader::LoadFromFile(const std::filesystem::path& pa
   }
 
   if (const auto listen_port = table["listen_port"].value<std::uint32_t>()) {
-    if (*listen_port == 0 || *listen_port > std::numeric_limits<std::uint16_t>::max()) {
+    if (*listen_port > std::numeric_limits<std::uint16_t>::max()) {
       return std::nullopt;
     }
     cfg.listen_port = static_cast<std::uint16_t>(*listen_port);
