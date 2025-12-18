@@ -10,6 +10,7 @@ Deliver storage drivers (pager, WAL, value log, checkpoint/superblock plumbing) 
 
 - [x] (2025-12-18 11:55Z) Documented current storage surface (pager, WAL manager, value log, simple store) and drafted this ExecPlan scoped to MAIN_SPECIFICATION.md Sections 6–7.
 - [x] (2025-12-18 13:06Z) Reworked the plan to spell out shared header contracts, canonical types, and sequencing so pager/WAL/value-log/checkpoint owners can proceed in parallel without blocking on interface drift.
+- [x] (2025-12-18 13:27Z) Added Milestone 0 acceptance checklist (shared header, filename schema, inline-threshold metadata) so concurrent owners can branch without redefining pointer/page/LSN types.
 - [ ] (Pending) Lock in driver interfaces and invariants across pager/B+Tree/WAL/value log, including CRC and LSN contracts, before modifying code.
 - [ ] (Pending) Implement segmented WAL with commit markers, CRC verification, and redo replay that rehydrates B+Tree pages and value-log references.
 - [ ] (Pending) Implement value-log segmentation, pointer validation, and GC hooks tied to checkpoints and manifest metadata.
@@ -28,6 +29,9 @@ Deliver storage drivers (pager, WAL, value log, checkpoint/superblock plumbing) 
 - Decision: Introduce a shared storage contract header (new `src/storage/storage_common.h`) that defines canonical types (`PageId`, `Lsn`, `SegmentId`, `SegmentPointer`, page type enum), CRC constants, and segment naming helpers used by pager, WAL, value log, checkpointing, and B+Tree metadata.  
   Rationale: A single source of truth prevents parallel owners from diverging on field widths or file naming and lets teams start implementation without waiting for downstream refactors.  
   Date/Author: 2025-12-18 (assistant)
+- Decision: Gate all downstream driver work on Milestone 0 landing: (a) `storage_common.h` merged and included in pager/WAL/value-log/B+Tree/checkpoint headers, (b) duplicate typedefs removed, (c) directory/file naming fixed to `wal-%06u.log` and `vlog-%06u.seg` to match the spec, and (d) manifest/superblock comments updated to carry inline-threshold and page-size metadata.  
+  Rationale: A crisp acceptance checklist lets concurrent owners branch immediately without redefining invariants or renaming files mid-flight.  
+  Date/Author: 2025-12-18 (assistant)
 
 ## Outcomes & Retrospective
 
@@ -35,11 +39,11 @@ No implementation work has started. Fill this section after each milestone to re
 
 ## Context and Orientation
 
-The current storage surface includes `src/storage/pager/pager.*` (fixed-size pages with CRC but no free-list or page-type enforcement), `src/storage/wal/wal_manager.*` (single WAL file with FlatBuffer records, no segment rollover, no redo-to-B+Tree), `src/storage/vlog/value_log.*` (single-segment append/read with CRC per record, no GC or manifest links), and `src/storage/simple_store.*` (ties manifest/superblock, pager, value log, and B+Tree together). `MAIN_SPECIFICATION.md` Sections 6–7 define additional requirements: segmented WAL and value log, redo-only recovery with commit markers, page headers that carry type/LSN/CRC, hybrid inline/value-log storage, checkpointing, and TTL calibration stored in the superblock. No dedicated AGENTS apply beyond the root instructions, and `PLANS.md` governs ExecPlan format and maintenance expectations.
+The current storage surface includes `src/storage/pager/pager.*` (fixed-size pages with CRC but no free-list or page-type enforcement), `src/storage/wal/wal_manager.*` (single WAL file with FlatBuffer records, no segment rollover, no redo-to-B+Tree), `src/storage/vlog/value_log.*` (single-segment append/read with CRC per record, no GC or manifest links), and `src/storage/simple_store.*` (ties manifest/superblock, pager, value log, and B+Tree together). `MAIN_SPECIFICATION.md` Sections 6–7 define additional requirements: segmented WAL and value log, redo-only recovery with commit markers, page headers that carry type/LSN/CRC, hybrid inline/value-log storage, checkpointing, and TTL calibration stored in the superblock. Value-log segments must use the `vlog-%06u.seg` suffix; WAL segments use `wal-%06u.log`. No dedicated AGENTS apply beyond the root instructions, and `PLANS.md` governs ExecPlan format and maintenance expectations.
 
 ## Plan of Work
 
-Milestone 0 (shared contracts to unblock parallel work): Add `src/storage/storage_common.h` that centralizes `PageId`, `Lsn`, `SegmentId`, `SegmentPointer`, `PageType`, CRC constants, and segment naming helpers (e.g., `wal-000001.log`, `vlog-000001.log`). Update `src/storage/pager/pager.h`, `src/storage/wal/wal_record.h`, `src/storage/vlog/value_log.h`, `src/storage/checkpoint/*`, and `src/storage/btree/*` headers to include this file and remove duplicate typedefs. Document inline-threshold defaults and pointer layout (segment id + offset + length) so B+Tree, WAL, and value log use the same schema before deeper implementation begins.
+Milestone 0 (shared contracts to unblock parallel work): Add `src/storage/storage_common.h` that centralizes `PageId`, `Lsn`, `SegmentId`, `SegmentPointer`, `PageType`, CRC constants, and segment naming helpers (e.g., `wal-000001.log`, `vlog-000001.seg`). Update `src/storage/pager/pager.h`, `src/storage/wal/wal_record.h`, `src/storage/vlog/value_log.h`, `src/storage/checkpoint/*`, and `src/storage/btree/*` headers to include this file and remove duplicate typedefs. Document inline-threshold metadata (stored in the manifest) and pointer layout (segment id + offset + length) so B+Tree, WAL, and value log use the same schema before deeper implementation begins. Acceptance for branching other milestones: new header checked in, type aliases removed elsewhere, manifest/superblock comments cite page size + inline threshold, and segment filename suffixes match the spec.
 
 Milestone 1 (interfaces and invariants): Document and enforce driver contracts. Define pager header layout (id, type, lsn, CRC) and payload sizing in `src/storage/pager/pager.*`; specify how B+Tree records encode inline vs. value-log pointers in `src/storage/btree/` headers using the shared pointer schema; pin WAL record shapes and expected FlatBuffers file identifiers. Update `meta::ManifestRecord` and `meta::SuperBlock` comments to capture page size, inline threshold, and TTL calibration so drivers can validate their inputs before touching disk. Freeze a small glossary of terms (page id, segment, checkpoint LSN) inside `storage_common.h` comments for consistency.
 
@@ -64,12 +68,13 @@ This plan is intentionally sliced so multiple contributors can proceed with mini
 - Test/validation ownership: A fifth worker writes tests under `tests/storage/` plus doc updates in `docs/`, consuming the stable APIs from other threads without needing internal details once interfaces are frozen in Milestone 1.
 
 All tracks begin after Milestone 0 lands `src/storage/storage_common.h` and updates dependent headers so that pointer/page/LSN schemas stay consistent while teams move independently.
+- Pre-flight checklist before branching: search the tree for legacy definitions of `PageId`, `Lsn`, `SegmentId`, `SegmentPointer`, or `PageType` and replace them with `storage_common.h`; confirm manifest and superblock comments mention `page_size` and `inline_value_threshold`; rename any lingering value-log filenames to `vlog-%06u.seg`; and publish the final header so dependent branches can rebase cleanly.
 
 ## Concrete Steps
 
 Run commands from the repository root unless stated otherwise.
 
-0) Establish the shared storage contract before deeper work: create `src/storage/storage_common.h` with canonical types and include it from pager/WAL/value-log/B+Tree/checkpoint headers to eliminate duplicate typedefs. No functional changes should accompany this scaffolding aside from aligning field names and comments.
+0) Establish the shared storage contract before deeper work: create `src/storage/storage_common.h` with canonical types and include it from pager/WAL/value-log/B+Tree/checkpoint headers to eliminate duplicate typedefs. Update manifest and superblock comments to mention `page_size` and `inline_value_threshold`. Ensure segment filename helpers emit `wal-%06u.log` and `vlog-%06u.seg`. No functional changes should accompany this scaffolding aside from aligning field names and comments.
 
 1) Prepare build trees (required by presets):  
     cmake --preset dev-debug  
@@ -104,7 +109,7 @@ All commands above are safe to rerun: CMake presets reuse the same build trees; 
 
 ## Interfaces and Dependencies
 
-Shared contract (`src/storage/storage_common.h`): define `using PageId = std::uint64_t; using SegmentId = std::uint32_t; using Lsn = std::uint64_t;` plus `struct SegmentPointer { SegmentId segment_id; std::uint64_t offset; std::uint64_t length; };` and `enum class PageType : std::uint8_t { kUnknown, kLeaf, kInternal, kManifest, kMeta };`. Provide helpers for WAL/value-log segment filenames (`wal-%06u.log`, `vlog-%06u.log`) and constants for header CRC seeds and payload alignment.
+Shared contract (`src/storage/storage_common.h`): define `using PageId = std::uint64_t; using SegmentId = std::uint32_t; using Lsn = std::uint64_t;` plus `struct SegmentPointer { SegmentId segment_id; std::uint64_t offset; std::uint64_t length; };` and `enum class PageType : std::uint8_t { kUnknown, kLeaf, kInternal, kManifest, kMeta };`. Provide helpers for WAL/value-log segment filenames (`wal-%06u.log`, `vlog-%06u.seg`), constants for header CRC seeds, payload alignment, and comments noting the manifest-stored `page_size` and inline-value threshold that callers must honor.
 
 Pager (`src/storage/pager/pager.*`): expose `Allocate(PageType) -> page_id`, `Read(page_id) -> Page{type,lsn,payload}`, `Write(Page)` that validates payload size and CRC, and `Sync()` that honors write-ahead ordering. Track `payload_size()` and header constants so B+Tree can size leaf/internal nodes correctly.
 
@@ -118,3 +123,4 @@ Meta/checkpoint (`src/meta/` and `src/storage/checkpoint/`): superblocks must pe
 
 - 2025-12-18: Initial ExecPlan created to cover storage driver cleanup and implementation scope from `MAIN_SPECIFICATION.md`.
 - 2025-12-18: Added shared contract scaffolding (storage_common.h), clarified interface alignment steps for parallel owners, and tightened milestone sequencing to unblock concurrent driver work.
+- 2025-12-18: Added milestone-0 acceptance checklist (shared header + filename schema + manifest metadata) to unblock concurrent pager/WAL/value-log/checkpoint branches without redefining contracts.
