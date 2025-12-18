@@ -150,8 +150,7 @@ int main(int argc, char** argv) {
 
     network_server.Stop();
     core_server.Stop();
-    std::cout << "jubildb server shut down gracefully"
-              << "\n";
+    std::cout << "jubildb server shut down gracefully" << "\n";
   } catch (const std::exception& ex) {
     std::cerr << "Server bootstrap failed: " << ex.what() << "\n";
     return 1;
