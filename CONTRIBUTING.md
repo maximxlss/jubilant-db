@@ -3,6 +3,13 @@
 Thanks for helping improve Jubilant DB! The following practices keep changes moving smoothly:
 
 ## Tooling expectations
+- **CI toolchain versions.** CI builds and formatting run with clang/clang++ 18.1, clang-format 18.1, and clang-tidy 18.1. Local development should match these versions to avoid format or diagnostic drift. The shipped CMake presets pin compilers and tools to `/usr/bin/clang-18`, `/usr/bin/clang++-18`, `/usr/bin/clang-format-18`, and `/usr/bin/clang-tidy-18`. Install them on Ubuntu with:
+
+  ```sh
+  sudo apt-get update -y
+  sudo apt-get install -y clang-18 clang-format-18 clang-tidy-18
+  ```
+
 - **clang-tidy is mandatory.** Resolve all clang-tidy findings. Configure with a tidy preset so clang-tidy runs against every target (library, CLI, and tests) during compilation:
   - `cmake --preset dev-debug-tidy`
   - `cmake --build --preset dev-debug-tidy`
