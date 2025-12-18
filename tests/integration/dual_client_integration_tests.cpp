@@ -1,43 +1,34 @@
+#include "integration_test_utils.h"
 #include "server/network_server.h"
 #include "server/server.h"
 #include "storage/simple_store.h"
 
 #include <algorithm>
-#include <arpa/inet.h>
-#include <array>
-#include <cerrno>
-#include <chrono>
-#include <csignal>
 #include <cstddef>
-#include <cstdlib>
-#include <cstring>
-#include <fcntl.h>
 #include <filesystem>
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
-#include <poll.h>
+#include <optional>
 #include <random>
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
 #include <utility>
 #include <variant>
 #include <vector>
 
 using jubilant::server::NetworkServer;
 using jubilant::server::Server;
+using jubilant::test::CommandResult;
+using jubilant::test::FindJubectlBinary;
+using jubilant::test::FindPythonClientDir;
+using jubilant::test::ParseJson;
+using jubilant::test::RunJubectlRemote;
+using jubilant::test::RunPythonClient;
+using jubilant::test::RunPythonClientCommand;
+using jubilant::test::SendRawFrameToServer;
 
 namespace {
-
-struct CommandResult {
-  int exit_code{0};
-  bool timed_out{false};
-  std::string output;
-};
 
 struct IntegrationScenario {
   std::string name;
@@ -71,281 +62,6 @@ struct ActionMatrix {
 
 std::string ScenarioName(const testing::TestParamInfo<IntegrationScenario>& info) {
   return info.param.name;
-}
-
-std::filesystem::path SourceRoot() {
-  std::filesystem::path cursor = std::filesystem::absolute(std::filesystem::path(__FILE__));
-  cursor = cursor.parent_path();
-  while (!cursor.empty() && !std::filesystem::exists(cursor / "CMakeLists.txt")) {
-    cursor = cursor.parent_path();
-  }
-  return cursor;
-}
-
-std::filesystem::path FindExistingPath(const std::vector<std::filesystem::path>& candidates) {
-  for (const auto& candidate : candidates) {
-    if (std::filesystem::exists(candidate)) {
-      return candidate;
-    }
-  }
-  return {};
-}
-
-std::filesystem::path FindJubectlBinary() {
-  const auto cwd = std::filesystem::current_path();
-  const auto root = SourceRoot();
-  return FindExistingPath(
-      {cwd / "jubectl", root / "build/dev-debug/jubectl", root / "build/dev-debug-tidy/jubectl"});
-}
-
-std::filesystem::path FindPythonClientDir() {
-  const auto cwd = std::filesystem::current_path();
-  const auto root = SourceRoot();
-  return FindExistingPath({cwd / "python_clients", root / "tools/clients/python"});
-}
-
-std::string PythonExecutable() {
-  if (std::filesystem::exists("/usr/bin/python3")) {
-    return "/usr/bin/python3";
-  }
-  if (std::filesystem::exists("/usr/local/bin/python3")) {
-    return "/usr/local/bin/python3";
-  }
-  return "python3";
-}
-
-CommandResult RunCommand(const std::vector<std::string>& args,
-                         const std::filesystem::path& working_dir,
-                         const std::vector<std::pair<std::string, std::string>>& env = {},
-                         std::chrono::milliseconds timeout = std::chrono::milliseconds{5000}) {
-  int pipe_fds[2]{-1, -1};
-  if (pipe(pipe_fds) != 0) {
-    throw std::runtime_error("Failed to create pipe for subprocess");
-  }
-
-  const pid_t pid = fork();
-  if (pid < 0) {
-    close(pipe_fds[0]);
-    close(pipe_fds[1]);
-    throw std::runtime_error("fork failed");
-  }
-
-  if (pid == 0) {
-    if (!working_dir.empty()) {
-      if (chdir(working_dir.c_str()) != 0) {
-        _exit(127);
-      }
-    }
-    for (const auto& [key, value] : env) {
-      if (setenv(key.c_str(), value.c_str(), 1) != 0) {
-        _exit(127);
-      }
-    }
-
-    if (dup2(pipe_fds[1], STDOUT_FILENO) == -1 || dup2(pipe_fds[1], STDERR_FILENO) == -1) {
-      _exit(127);
-    }
-    close(pipe_fds[0]);
-    close(pipe_fds[1]);
-
-    std::vector<char*> argv;
-    argv.reserve(args.size() + 1);
-    for (const auto& arg : args) {
-      argv.push_back(const_cast<char*>(arg.c_str()));
-    }
-    argv.push_back(nullptr);
-
-    if (argv.empty()) {
-      _exit(127);
-    }
-    execvp(argv.front(), argv.data());
-    _exit(127);
-  }
-
-  close(pipe_fds[1]);
-  const int current_flags = fcntl(pipe_fds[0], F_GETFL);
-  fcntl(pipe_fds[0], F_SETFL, current_flags | O_NONBLOCK);
-
-  const auto deadline = std::chrono::steady_clock::now() + timeout;
-  bool timed_out = false;
-  std::string output;
-  std::array<char, 4096> buffer{};
-  int status = 0;
-  while (true) {
-    const auto now = std::chrono::steady_clock::now();
-    if (now >= deadline && !timed_out) {
-      timed_out = true;
-      kill(pid, SIGKILL);
-    }
-
-    pollfd poll_fd{};
-    poll_fd.fd = pipe_fds[0];
-    poll_fd.events = POLLIN;
-    const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now);
-    const int wait_ms =
-        timed_out
-            ? 0
-            : static_cast<int>(std::max<std::chrono::milliseconds::rep>(remaining.count(), 0LL));
-    const int ready = poll(&poll_fd, 1, wait_ms);
-    if (ready > 0 && (poll_fd.revents & POLLIN) != 0) {
-      while (true) {
-        const auto bytes_read = read(pipe_fds[0], buffer.data(), buffer.size());
-        if (bytes_read > 0) {
-          output.append(buffer.data(), static_cast<std::size_t>(bytes_read));
-          continue;
-        }
-        if (bytes_read == -1 && errno == EINTR) {
-          continue;
-        }
-        break;
-      }
-    }
-
-    const auto waited = waitpid(pid, &status, timed_out ? 0 : WNOHANG);
-    if (waited == pid) {
-      while (true) {
-        const auto bytes_read = read(pipe_fds[0], buffer.data(), buffer.size());
-        if (bytes_read > 0) {
-          output.append(buffer.data(), static_cast<std::size_t>(bytes_read));
-          continue;
-        }
-        if (bytes_read == -1 && errno == EINTR) {
-          continue;
-        }
-        break;
-      }
-      break;
-    }
-    if (waited == -1 && errno != EINTR) {
-      throw std::runtime_error("waitpid failed");
-    }
-  }
-  close(pipe_fds[0]);
-
-  CommandResult result{};
-  result.exit_code = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
-  result.timed_out = timed_out;
-  result.output = std::move(output);
-  return result;
-}
-
-CommandResult RunPythonClientCommand(const std::filesystem::path& client_dir,
-                                     const std::vector<std::string>& extra_args,
-                                     std::uint16_t port) {
-  const auto executable = PythonExecutable();
-  const auto script = client_dir / "jubectl_client.py";
-
-  std::vector<std::string> args{executable,  script.string(), "--host",
-                                "127.0.0.1", "--port",        std::to_string(port)};
-  args.insert(args.end(), extra_args.begin(), extra_args.end());
-
-  return RunCommand(args, client_dir,
-                    {{"PYTHONPATH", client_dir.string()}, {"PYTHONUNBUFFERED", "1"}});
-}
-
-CommandResult RunJubectlRemoteCommand(const std::filesystem::path& binary,
-                                      const std::vector<std::string>& extra_args,
-                                      std::uint16_t port) {
-  std::vector<std::string> args{binary.string(), "--remote", "127.0.0.1:" + std::to_string(port),
-                                "--timeout-ms", "2000"};
-  args.insert(args.end(), extra_args.begin(), extra_args.end());
-  return RunCommand(args, std::filesystem::current_path());
-}
-
-nlohmann::json ParseJson(const std::string& payload) {
-  const auto parsed = nlohmann::json::parse(payload, nullptr, false);
-  if (parsed.is_discarded()) {
-    throw std::runtime_error("Failed to parse JSON payload: " + payload);
-  }
-  return parsed;
-}
-
-nlohmann::json RunPythonClient(const std::filesystem::path& client_dir, std::string_view command,
-                               std::string_view key, const std::string& value,
-                               std::string_view value_type, std::uint16_t port) {
-  std::vector<std::string> args{std::string{command}, std::string{key}};
-  if (!value_type.empty()) {
-    args.emplace_back(value_type);
-    args.emplace_back(value);
-  }
-
-  const auto result = RunPythonClientCommand(client_dir, args, port);
-  if (result.exit_code != 0) {
-    throw std::runtime_error(std::string{"Python client failed"} +
-                             (result.timed_out ? " (timed out)" : "") + ": " + result.output);
-  }
-  return ParseJson(result.output);
-}
-
-nlohmann::json RunJubectlRemote(const std::filesystem::path& binary, std::string_view command,
-                                std::string_view key, const std::string& value,
-                                std::string_view value_type, std::uint16_t port) {
-  std::vector<std::string> args{std::string{command}, std::string{key}};
-  if (!value_type.empty()) {
-    args.emplace_back(value_type);
-    args.emplace_back(value);
-  }
-
-  const auto result = RunJubectlRemoteCommand(binary, args, port);
-  if (result.exit_code != 0) {
-    throw std::runtime_error(std::string{"jubectl failed"} +
-                             (result.timed_out ? " (timed out)" : "") + ": " + result.output);
-  }
-  return ParseJson(result.output);
-}
-
-CommandResult SendRawFrameToServer(std::uint16_t port, std::string_view payload) {
-  CommandResult result{};
-
-  const int socket_fd = ::socket(AF_INET, SOCK_STREAM, 0);
-  if (socket_fd < 0) {
-    result.exit_code = errno;
-    result.output = "socket failed";
-    return result;
-  }
-
-  sockaddr_in addr{};
-  addr.sin_family = AF_INET;
-  addr.sin_port = htons(port);
-  addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-
-  if (::connect(socket_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != 0) {
-    result.exit_code = errno;
-    result.output = "connect failed";
-    ::close(socket_fd);
-    return result;
-  }
-
-  const auto payload_length = static_cast<std::uint32_t>(payload.size());
-  std::array<std::byte, 4> prefix{};
-  const auto network_length = htonl(payload_length);
-  std::memcpy(prefix.data(), &network_length, sizeof(network_length));
-
-  if (::send(socket_fd, prefix.data(), prefix.size(), 0) < 0) {
-    result.exit_code = errno;
-    result.output = "send failed";
-    ::close(socket_fd);
-    return result;
-  }
-
-  if (!payload.empty()) {
-    if (::send(socket_fd, payload.data(), payload.size(), 0) < 0) {
-      result.exit_code = errno;
-      result.output = "send payload failed";
-      ::close(socket_fd);
-      return result;
-    }
-  }
-
-  std::array<char, 4096> buffer{};
-  const auto received = ::recv(socket_fd, buffer.data(), buffer.size(), 0);
-  if (received > 0) {
-    result.output.assign(buffer.data(), static_cast<std::size_t>(received));
-  }
-
-  ::shutdown(socket_fd, SHUT_RDWR);
-  ::close(socket_fd);
-  return result;
 }
 
 nlohmann::json ExecuteClientAction(const ClientAction& action, const ClientEndpoints& endpoints,
