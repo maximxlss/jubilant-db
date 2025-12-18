@@ -138,9 +138,8 @@ int main(int argc, char** argv) {
     }
 
     std::cout << "jubildb server started with " << worker_count << " workers at "
-              << network_config.host << ":" << network_server.port() << std::endl;
-    std::cout << "Database path: " << std::filesystem::absolute(config->db_path).string()
-              << std::endl;
+              << network_config.host << ":" << network_server.port() << "\n";
+    std::cout << "Database path: " << std::filesystem::absolute(config->db_path).string() << "\n";
 
     std::signal(SIGINT, SignalHandler);
     std::signal(SIGTERM, SignalHandler);
@@ -151,7 +150,8 @@ int main(int argc, char** argv) {
 
     network_server.Stop();
     core_server.Stop();
-    std::cout << "jubildb server shut down gracefully" << std::endl;
+    std::cout << "jubildb server shut down gracefully"
+              << "\n";
   } catch (const std::exception& ex) {
     std::cerr << "Server bootstrap failed: " << ex.what() << "\n";
     return 1;

@@ -50,7 +50,7 @@ std::string SafeReadFile(const std::filesystem::path& path) {
     return {};
   }
 
-  return std::string((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+  return {std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
 }
 
 std::optional<std::uint16_t> ParsePortFromLog(const std::string& log_contents) {
@@ -105,6 +105,10 @@ CommandResult RunCommand(const std::vector<std::string>& args,
                          const std::filesystem::path& working_dir,
                          const std::vector<std::pair<std::string, std::string>>& env,
                          std::chrono::milliseconds timeout) {
+  if (args.empty()) {
+    throw std::invalid_argument("args must not be empty");
+  }
+
   int pipe_fds[2]{-1, -1};
   if (pipe(pipe_fds) != 0) {
     throw std::runtime_error("Failed to create pipe for subprocess");
@@ -142,16 +146,19 @@ CommandResult RunCommand(const std::vector<std::string>& args,
     }
     argv.push_back(nullptr);
 
-    if (argv.empty()) {
-      _exit(127);
-    }
     execvp(argv.front(), argv.data());
     _exit(127);
   }
 
   close(pipe_fds[1]);
   const int current_flags = fcntl(pipe_fds[0], F_GETFL);
-  fcntl(pipe_fds[0], F_SETFL, current_flags | O_NONBLOCK);
+  if (current_flags == -1 || fcntl(pipe_fds[0], F_SETFL, current_flags | O_NONBLOCK) == -1) {
+    close(pipe_fds[0]);
+    kill(pid, SIGKILL);
+    int ignore_status = 0;
+    waitpid(pid, &ignore_status, 0);
+    throw std::runtime_error("Failed to set non-blocking mode for pipe");
+  }
 
   const auto deadline = std::chrono::steady_clock::now() + timeout;
   bool timed_out = false;
@@ -387,9 +394,15 @@ ServerProcess StartServerProcess(const ServerProcessConfig& config) {
     } else if (!process.workspace.empty()) {
       (void)chdir(process.workspace.c_str());
     }
-    dup2(log_fd, STDOUT_FILENO);
-    dup2(log_fd, STDERR_FILENO);
-    close(log_fd);
+    if (dup2(log_fd, STDOUT_FILENO) < 0) {
+      ::close(log_fd);
+      _exit(127);
+    }
+    if (dup2(log_fd, STDERR_FILENO) < 0) {
+      ::close(log_fd);
+      _exit(127);
+    }
+    ::close(log_fd);
 
     std::vector<std::string> args{
         config.binary.string(),         "--config",  process.config_path.string(),  "--workers",

@@ -19,6 +19,11 @@ namespace {
 
 class ServerProcessIntegrationTest : public ::testing::Test {
 protected:
+  struct ServerStartupOptions {
+    std::uint16_t port;
+    int backlog;
+  };
+
   void SetUp() override {
     server_binary_ = FindServerBinary();
     ASSERT_FALSE(server_binary_.empty()) << "jubildb_server binary not found";
@@ -39,13 +44,13 @@ protected:
     }
   }
 
-  void StartServer(std::uint16_t port, int backlog) {
+  void StartServer(const ServerStartupOptions& options) {
     ServerProcessConfig config{};
     config.binary = server_binary_;
     config.workspace = workspace_;
     config.db_path = db_path_;
-    config.port = port;
-    config.backlog = backlog;
+    config.port = options.port;
+    config.backlog = options.backlog;
     config.workers = 2;
     config.startup_timeout = std::chrono::seconds{8};
     server_ = StartServerProcess(config);
@@ -59,7 +64,7 @@ protected:
 };
 
 TEST_F(ServerProcessIntegrationTest, RemoteWritesSurviveRestartAndCoverValueKinds) {
-  StartServer(/*port=*/0, /*backlog=*/8);
+  StartServer(ServerStartupOptions{.port = 0, .backlog = 8});
   ASSERT_TRUE(server_.running());
   ASSERT_GT(server_.port, 0);
 
@@ -83,7 +88,7 @@ TEST_F(ServerProcessIntegrationTest, RemoteWritesSurviveRestartAndCoverValueKind
   StopServerProcess(server_, std::chrono::milliseconds{2000});
   ASSERT_FALSE(server_.running());
 
-  StartServer(/*port=*/0, /*backlog=*/4);
+  StartServer(ServerStartupOptions{.port = 0, .backlog = 4});
   ASSERT_TRUE(server_.running());
   ASSERT_GT(server_.port, 0);
 
