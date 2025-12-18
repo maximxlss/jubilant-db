@@ -33,11 +33,11 @@ TEST(ValueLogTest, AppendsReturnMonotonicPointers) {
 
   EXPECT_EQ(first_result.pointer.segment_id, 0U);
   EXPECT_EQ(first_result.pointer.offset, 0U);
-  EXPECT_EQ(first_result.length, first.size());
+  EXPECT_EQ(first_result.pointer.length, first.size());
 
   EXPECT_EQ(second_result.pointer.segment_id, 0U);
   EXPECT_EQ(second_result.pointer.offset, first.size() + (sizeof(std::uint32_t) * 2));
-  EXPECT_EQ(second_result.length, second.size());
+  EXPECT_EQ(second_result.pointer.length, second.size());
 }
 
 TEST(ValueLogTest, PersistsAndReadsValues) {

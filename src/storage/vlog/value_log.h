@@ -1,5 +1,7 @@
 #pragma once
 
+#include "storage/storage_common.h"
+
 #include <cstdint>
 #include <filesystem>
 #include <optional>
@@ -7,14 +9,11 @@
 
 namespace jubilant::storage::vlog {
 
-struct SegmentPointer {
-  std::uint32_t segment_id{0};
-  std::uint64_t offset{0};
-};
+using storage::SegmentPointer;
 
 struct AppendResult {
+  // Full segment pointer (segment_id, offset, length) for the appended payload.
   SegmentPointer pointer{};
-  std::uint64_t length{0};
 };
 
 class ValueLog {
@@ -29,7 +28,7 @@ private:
   std::filesystem::path base_dir_;
   SegmentPointer next_pointer_{};
 
-  [[nodiscard]] std::filesystem::path SegmentPath(std::uint32_t segment_id) const;
+  [[nodiscard]] std::filesystem::path SegmentPath(SegmentId segment_id) const;
 };
 
 } // namespace jubilant::storage::vlog

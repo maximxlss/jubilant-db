@@ -1,6 +1,7 @@
 #include "storage/wal/wal_manager.h"
 
 #include "storage/checksum.h"
+#include "storage/storage_common.h"
 #include "wal_generated.h"
 
 #include <flatbuffers/verifier.h>
@@ -47,7 +48,7 @@ std::vector<std::byte> BuildCrcPayload(const jubilant::storage::wal::WalRecord& 
 namespace jubilant::storage::wal {
 
 WalManager::WalManager(std::filesystem::path base_dir)
-    : wal_dir_(std::move(base_dir)), wal_path_(wal_dir_ / "wal-000001.log") {
+    : wal_dir_(std::move(base_dir)), wal_path_(WalSegmentPath(wal_dir_, 0)) {
   std::filesystem::create_directories(wal_dir_);
 
   const auto replay = Replay();

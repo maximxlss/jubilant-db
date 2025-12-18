@@ -1,5 +1,7 @@
 #pragma once
 
+#include "storage/storage_common.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -8,7 +10,8 @@
 
 namespace jubilant::storage::wal {
 
-using Lsn = std::uint64_t;
+using storage::Lsn;
+using storage::SegmentPointer;
 
 enum class RecordType : std::uint8_t {
   kTxnBegin = 0,
@@ -19,16 +22,12 @@ enum class RecordType : std::uint8_t {
   kCheckpoint = 5,
 };
 
-struct ValuePointer {
-  std::uint32_t segment_id{0};
-  std::uint64_t offset{0};
-  std::uint64_t length{0};
-};
-
 struct UpsertPayload {
   std::string key;
   std::vector<std::byte> value;
-  std::optional<ValuePointer> value_ptr;
+  // External value pointer when the payload exceeds manifest.inline_threshold. The pointer layout
+  // matches storage::SegmentPointer {segment_id, offset, length}.
+  std::optional<SegmentPointer> value_ptr;
   std::uint64_t ttl_epoch_seconds{0};
 };
 

@@ -2,7 +2,7 @@
 
 namespace jubilant::storage::checkpoint {
 
-void Checkpointer::RequestCheckpoint(wal::Lsn target_lsn) {
+void Checkpointer::RequestCheckpoint(Lsn target_lsn) {
   target_lsn_ = target_lsn;
 }
 

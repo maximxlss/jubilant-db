@@ -1,13 +1,13 @@
 #include "storage/checksum.h"
 
+#include "storage/storage_common.h"
+
 #include <array>
 #include <cstddef>
 
 namespace jubilant::storage {
 
 namespace {
-
-constexpr std::uint32_t kCrc32Polynomial = 0xEDB88320U;
 
 constexpr std::array<std::uint32_t, 256> BuildTable() {
   std::array<std::uint32_t, 256> table{};
@@ -30,14 +30,14 @@ constexpr std::array<std::uint32_t, 256> kCrcTable = BuildTable();
 } // namespace
 
 std::uint32_t ComputeCrc32(std::span<const std::byte> data) {
-  std::uint32_t crc = 0xFFFFFFFFU;
+  std::uint32_t crc = kCrc32Seed;
 
   for (const auto byte : data) {
     const auto index = static_cast<std::uint8_t>(byte) ^ (crc & 0xFFU);
     crc = (crc >> 8U) ^ kCrcTable[index];
   }
 
-  return crc ^ 0xFFFFFFFFU;
+  return crc ^ kCrc32FinalXor;
 }
 
 } // namespace jubilant::storage

@@ -11,7 +11,12 @@ struct ManifestRecord {
   std::uint64_t generation{1};
   std::uint16_t format_major{1};
   std::uint16_t format_minor{0};
+  // Page size (bytes) for data.pages. The pager and B+Tree leaf layout rely on this staying stable
+  // across restarts so WAL replay can validate page boundaries.
   std::uint32_t page_size{4096};
+  // Inline value threshold (bytes). Values above this spill into the value log and store a shared
+  // SegmentPointer {segment_id, offset, length} instead of inline bytes. Persisted here so WAL,
+  // value log, and B+Tree encode/decode decisions stay consistent.
   std::uint32_t inline_threshold{1024};
   std::string db_uuid;
   std::string wire_schema;
