@@ -1,11 +1,6 @@
 # Roadmap
 
-This roadmap folds the near-term and long-range plans into one place so contributors can see what is done, what is next, and how the work threads together. It is intentionally aligned with the product direction captured in [`MAIN_SPECIFICATION.md`](../MAIN_SPECIFICATION.md) so the outside-facing README and the delivery path stay consistent. The v0.0.2 ExecPlan stays in [`docs/v0.0.2-plan.md`](v0.0.2-plan.md) for milestone-specific detail.
-
-## Release line and current status
-
-- **Current milestone: v0.0.2 (networked transaction preview).** Remote JSON framing, the C++ server bootstrap, the Python client bundle, and `jubectl --remote` are in place. The remaining acceptance gap is **end-to-end integration coverage** that drives `set/get/del` through the network stack and proves replay safety across restarts.
-- **Next stop:** promote v0.0.2 to “done” by landing the integration tests above, a short retrospective, and any doc polish that falls out of validation. Keep the ExecPlan updated as these land.
+This roadmap folds the near-term and long-range plans into one place so contributors can see what is done, what is next, and how the work threads together. It is intentionally aligned with the product direction captured in [`MAIN_SPECIFICATION.md`](../MAIN_SPECIFICATION.md) so the outside-facing README and the delivery path stay consistent.
 
 ## Near-term spine
 

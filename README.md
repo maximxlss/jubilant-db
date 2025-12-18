@@ -88,7 +88,6 @@ Transaction files may include a full request object or just an `operations` arra
 - **Product/storage spec:** [`MAIN_SPECIFICATION.md`](MAIN_SPECIFICATION.md)
 - **Technical stack:** [`TECH_SPECIFICATION.md`](TECH_SPECIFICATION.md)
 - **Unified roadmap:** [`docs/roadmap.md`](docs/roadmap.md)
-- **v0.0.2 ExecPlan:** [`docs/v0.0.2-plan.md`](docs/v0.0.2-plan.md)
 
 ## License
 

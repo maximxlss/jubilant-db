@@ -13,11 +13,8 @@ This index is the entry point for engineers and contributors. It groups the spec
 
 ## Architecture and runtime
 
-- **Server runtime scaffolding:** [`server-runtime.md`](server-runtime.md) explains the transaction receiver, worker pool, and completion queue that underpin the future wire protocol.
 - **Wire envelope (v0.0.2 prototype):** [`txn-wire-v0.0.2.md`](txn-wire-v0.0.2.md) details the length-prefixed JSON framing and provides sample payloads.
 - **FlatBuffers transition plan:** [`flatbuffers-wire-transition.md`](flatbuffers-wire-transition.md) is a near-complete guide for moving from JSON to the long-term FlatBuffers wire protocol, including rollout phases, risks, and validation steps.
-- **CMake/CI setup:** [`ci-setup.md`](ci-setup.md) documents how to reproduce CI locally using presets and helper targets.
-- **Current code review notes:** [`code-review-findings.md`](code-review-findings.md) records reliability/stability gaps and fixes observed during repository sweeps.
 
 ## Clients and tooling
 * **jubectl remote mode:** `jubectl --remote <host:port>` now speaks the same length-prefixed JSON envelope for `set/get/del` plus a `txn` command that loads a JSON request (or `operations` array) from disk. Provide `--txn-id` to pin the transaction id and `--timeout-ms` to tune socket timeouts.
@@ -28,7 +25,7 @@ This index is the entry point for engineers and contributors. It groups the spec
 ## Milestones and acceptance
 
 - **v0.0.1 acceptance checklist:** [`FIRST_STEPS.md`](../FIRST_STEPS.md) tracks the definition of done for the initial CLI-driven store and the evidence provided by unit tests.
-- **Current release plan:** [`docs/v0.0.2-plan.md`](v0.0.2-plan.md) holds the ExecPlan for the networked-transaction milestone. The consolidated roadmap lives in [`docs/roadmap.md`](roadmap.md).
+- **Current release plan:** The consolidated roadmap lives in [`docs/roadmap.md`](roadmap.md).
 
 ## How to navigate
 
