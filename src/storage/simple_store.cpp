@@ -31,11 +31,15 @@ SimpleStore::SimpleStore(std::filesystem::path db_dir, meta::ManifestRecord mani
                          meta::SuperBlock superblock, Pager pager, vlog::ValueLog value_log)
     : db_dir_(std::move(db_dir)), manifest_store_(db_dir_), superblock_store_(db_dir_),
       manifest_(std::move(manifest)), superblock_(superblock), pager_(std::move(pager)),
-      value_log_(std::move(value_log)),
+      value_log_(std::move(value_log)), ttl_clock_(ttl::TtlClock::CalibrateNow()),
       tree_(btree::BTree::Config{.pager = &pager_,
                                  .value_log = &value_log_,
                                  .inline_threshold = manifest_.inline_threshold,
-                                 .root_hint = superblock_.root_page_id}) {
+                                 .root_hint = superblock_.root_page_id,
+                                 .ttl_clock = ttl_clock_ ? &ttl_clock_.value() : nullptr}) {
+  const auto calibration = ttl_clock_->calibration();
+  superblock_.ttl_calibration.wall_base = calibration.wall_clock_unix_seconds;
+  superblock_.ttl_calibration.mono_base = calibration.monotonic_time_nanos;
   RefreshRoot();
 }
 

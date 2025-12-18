@@ -55,13 +55,22 @@ meta::ManifestRecord LoadOrCreateManifest(meta::ManifestStore& manifest_store,
 
 meta::SuperBlock LoadOrCreateSuperblock(meta::SuperBlockStore& superblock_store,
                                         meta::SuperBlock superblock,
-                                        const storage::btree::BTree& btree) {
-  if (superblock.generation != 0) {
-    return superblock;
+                                        const storage::btree::BTree& btree,
+                                        const storage::ttl::Calibration& ttl_calibration) {
+  bool needs_write = false;
+  if (superblock.generation == 0) {
+    superblock.root_page_id = btree.root_page_id();
+    needs_write = true;
   }
 
-  superblock.root_page_id = btree.root_page_id();
-  if (superblock_store.WriteNext(superblock)) {
+  if (superblock.ttl_calibration.wall_base != ttl_calibration.wall_clock_unix_seconds ||
+      superblock.ttl_calibration.mono_base != ttl_calibration.monotonic_time_nanos) {
+    superblock.ttl_calibration.wall_base = ttl_calibration.wall_clock_unix_seconds;
+    superblock.ttl_calibration.mono_base = ttl_calibration.monotonic_time_nanos;
+    needs_write = true;
+  }
+
+  if (needs_write && superblock_store.WriteNext(superblock)) {
     const auto refreshed = superblock_store.LoadActive();
     if (refreshed.has_value()) {
       return *refreshed;
@@ -81,14 +90,17 @@ Server::Server(const config::Config& config, std::size_t worker_count)
   std::filesystem::create_directories(base_dir_);
   manifest_record_ = LoadOrCreateManifest(manifest_store_, config);
   superblock_ = superblock_store_.LoadActive().value_or(meta::SuperBlock{});
+  const auto ttl_calibration = storage::ttl::TtlClock::CalibrateNow();
+  ttl_clock_.emplace(ttl_calibration);
   pager_.emplace(storage::Pager::Open(base_dir_ / "data.pages", manifest_record_.page_size));
   value_log_.emplace(base_dir_ / "vlog");
-  btree_.emplace(
+  auto& btree = btree_.emplace(
       storage::btree::BTree::Config{.pager = &pager_.value(),
                                     .value_log = &value_log_.value(),
                                     .inline_threshold = manifest_record_.inline_threshold,
-                                    .root_hint = superblock_.root_page_id});
-  superblock_ = LoadOrCreateSuperblock(superblock_store_, superblock_, btree_.value());
+                                    .root_hint = superblock_.root_page_id,
+                                    .ttl_clock = ttl_clock_ ? &ttl_clock_.value() : nullptr});
+  superblock_ = LoadOrCreateSuperblock(superblock_store_, superblock_, btree, ttl_calibration);
 }
 
 Server::~Server() {

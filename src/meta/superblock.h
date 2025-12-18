@@ -7,6 +7,9 @@
 namespace jubilant::meta {
 
 struct TtlCalibration {
+  // wall_base stores the Unix epoch seconds captured alongside the monotonic base time in
+  // mono_base. Both values are recorded together at startup to translate steady_clock deltas back
+  // into a stable wall-clock domain for TTL evaluation.
   std::uint64_t wall_base{0};
   std::uint64_t mono_base{0};
 };

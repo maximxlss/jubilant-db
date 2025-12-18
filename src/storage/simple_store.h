@@ -4,6 +4,7 @@
 #include "meta/superblock.h"
 #include "storage/btree/btree.h"
 #include "storage/pager/pager.h"
+#include "storage/ttl/ttl_clock.h"
 #include "storage/vlog/value_log.h"
 
 #include <filesystem>
@@ -58,6 +59,7 @@ private:
   meta::SuperBlock superblock_;
   Pager pager_;
   vlog::ValueLog value_log_;
+  std::optional<ttl::TtlClock> ttl_clock_;
   btree::BTree tree_;
 };
 

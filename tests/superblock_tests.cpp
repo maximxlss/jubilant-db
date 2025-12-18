@@ -52,6 +52,27 @@ TEST(SuperBlockStoreTest, PicksNewestValidSuperblock) {
   EXPECT_EQ(active->root_page_id, 200U);
 }
 
+TEST(SuperBlockStoreTest, PersistsTtlCalibration) {
+  const auto dir = TempDir("jubilant-superblock-ttl");
+  SuperBlockStore store{dir};
+
+  SuperBlock block{};
+  block.root_page_id = 50;
+  block.ttl_calibration.wall_base = 1234;
+  block.ttl_calibration.mono_base = 5678;
+
+  ASSERT_TRUE(store.WriteNext(block));
+
+  const auto active = store.LoadActive();
+  ASSERT_TRUE(active.has_value());
+  if (!active.has_value()) {
+    return;
+  }
+
+  EXPECT_EQ(active->ttl_calibration.wall_base, 1234U);
+  EXPECT_EQ(active->ttl_calibration.mono_base, 5678U);
+}
+
 TEST(SuperBlockStoreTest, FallsBackWhenNewerCrcCorrupted) {
   const auto dir = TempDir("jubilant-superblock-crc");
   SuperBlockStore store{dir};

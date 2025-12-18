@@ -1,5 +1,6 @@
 #include "storage/btree/btree.h"
 #include "storage/pager/pager.h"
+#include "storage/ttl/ttl_clock.h"
 #include "storage/vlog/value_log.h"
 
 #include <cstddef>
@@ -95,6 +96,53 @@ TEST(BTreeTest, RoutesLargeValuesToValueLog) {
 
   const auto& found_record = found.value();
   EXPECT_EQ(std::get<std::string>(found_record.value).size(), 32U);
+}
+
+TEST(BTreeTest, ExpiredRecordsAreNotVisible) {
+  const auto dir = TempDir("jubilant-btree-ttl-expired");
+  Pager pager = Pager::Open(dir / "data.pages", jubilant::storage::kDefaultPageSize);
+  ValueLog vlog(dir / "vlog");
+  const auto calibration = jubilant::storage::ttl::TtlClock::CalibrateNow();
+  jubilant::storage::ttl::TtlClock clock{calibration};
+  BTree tree(BTree::Config{.pager = &pager,
+                           .value_log = &vlog,
+                           .inline_threshold = 128U,
+                           .root_hint = 0,
+                           .ttl_clock = &clock});
+
+  Record record{};
+  record.value = std::string{"value"};
+  record.metadata.ttl_epoch_seconds = clock.WallNowSeconds();
+
+  tree.Insert("key", record);
+
+  EXPECT_FALSE(tree.Find("key").has_value());
+}
+
+TEST(BTreeTest, NonExpiredRecordsRemainVisible) {
+  const auto dir = TempDir("jubilant-btree-ttl-live");
+  Pager pager = Pager::Open(dir / "data.pages", jubilant::storage::kDefaultPageSize);
+  ValueLog vlog(dir / "vlog");
+  const auto calibration = jubilant::storage::ttl::TtlClock::CalibrateNow();
+  jubilant::storage::ttl::TtlClock clock{calibration};
+  BTree tree(BTree::Config{.pager = &pager,
+                           .value_log = &vlog,
+                           .inline_threshold = 128U,
+                           .root_hint = 0,
+                           .ttl_clock = &clock});
+
+  Record record{};
+  record.value = std::string{"value"};
+  record.metadata.ttl_epoch_seconds = clock.WallNowSeconds() + 60;
+
+  tree.Insert("key", record);
+
+  const auto found = tree.Find("key");
+  ASSERT_TRUE(found.has_value());
+  if (found.has_value()) {
+    EXPECT_EQ(std::get<std::string>(found->value), "value");
+    EXPECT_EQ(found->metadata.ttl_epoch_seconds, record.metadata.ttl_epoch_seconds);
+  }
 }
 
 TEST(BTreeTest, PersistsAcrossReload) {

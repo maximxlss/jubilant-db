@@ -1,6 +1,7 @@
 #pragma once
 
 #include "storage/pager/pager.h"
+#include "storage/ttl/ttl_clock.h"
 #include "storage/vlog/value_log.h"
 
 #include <cstdint>
@@ -44,6 +45,7 @@ public:
     vlog::ValueLog* value_log{nullptr};
     std::uint32_t inline_threshold{0};
     std::uint64_t root_hint{0};
+    const ttl::TtlClock* ttl_clock{nullptr};
   };
 
   explicit BTree(Config config);
@@ -71,6 +73,7 @@ private:
   vlog::ValueLog* value_log_;
   std::uint32_t inline_threshold_;
   std::uint64_t root_page_id_{0};
+  const ttl::TtlClock* ttl_clock_{nullptr};
   std::map<std::string, Record> in_memory_;
   std::vector<LeafPage> leaf_pages_;
 

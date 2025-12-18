@@ -115,6 +115,7 @@ add_library(jubildb
   src/storage/checksum.cpp
   src/storage/checkpoint/checkpointer.cpp
   src/storage/pager/pager.cpp
+  src/storage/ttl/ttl_clock.cpp
   src/storage/simple_store.cpp
   src/storage/vlog/value_log.cpp
   src/storage/wal/wal_manager.cpp

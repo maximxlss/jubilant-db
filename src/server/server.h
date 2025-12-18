@@ -8,6 +8,7 @@
 #include "server/worker.h"
 #include "storage/btree/btree.h"
 #include "storage/pager/pager.h"
+#include "storage/ttl/ttl_clock.h"
 #include "storage/vlog/value_log.h"
 #include "storage/wal/wal_manager.h"
 #include "txn/transaction_request.h"
@@ -48,6 +49,7 @@ private:
   lock::LockManager lock_manager_;
   std::optional<storage::Pager> pager_;
   std::optional<storage::vlog::ValueLog> value_log_;
+  std::optional<storage::ttl::TtlClock> ttl_clock_;
   std::optional<storage::btree::BTree> btree_;
   storage::wal::WalManager wal_manager_;
   meta::ManifestStore manifest_store_;

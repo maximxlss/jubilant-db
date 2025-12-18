@@ -32,7 +32,8 @@ constexpr std::size_t kEntryHeaderSize =
 
 BTree::BTree(Config config)
     : pager_(config.pager), value_log_(config.value_log),
-      inline_threshold_(config.inline_threshold), root_page_id_(config.root_hint) {
+      inline_threshold_(config.inline_threshold), root_page_id_(config.root_hint),
+      ttl_clock_(config.ttl_clock) {
   if (pager_ == nullptr) {
     throw std::invalid_argument("Pager must not be null");
   }
@@ -95,6 +96,9 @@ void BTree::LoadFromDisk(std::uint64_t root_hint) {
 std::optional<Record> BTree::Find(const std::string& key) const {
   const auto iter = in_memory_.find(key);
   if (iter == in_memory_.end()) {
+    return std::nullopt;
+  }
+  if (ttl_clock_ != nullptr && ttl_clock_->IsExpired(iter->second.metadata.ttl_epoch_seconds)) {
     return std::nullopt;
   }
   return Materialize(LeafEntry{.key = iter->first, .record = iter->second});
