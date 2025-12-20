@@ -1,16 +1,39 @@
 #include "server/worker.h"
 
+#include <algorithm>
+#include <ranges>
 #include <utility>
 
 namespace jubilant::server {
 
 Worker::KeyLockGuard::KeyLockGuard(lock::LockManager& manager, std::string key, lock::LockMode mode)
-    : manager_(manager), key_(std::move(key)), mode_(mode) {
+    : manager_(manager), key_(std::move(key)), mode_(mode), owns_lock_(true) {
   manager_.Acquire(key_, mode_);
 }
 
 Worker::KeyLockGuard::~KeyLockGuard() {
-  manager_.Release(key_, mode_);
+  if (owns_lock_) {
+    manager_.Release(key_, mode_);
+  }
+}
+
+Worker::KeyLockGuard::KeyLockGuard(KeyLockGuard&& other) noexcept
+    : manager_(other.manager_), key_(std::move(other.key_)), mode_(other.mode_),
+      owns_lock_(other.owns_lock_) {
+  other.owns_lock_ = false;
+}
+
+Worker::KeyLockGuard& Worker::KeyLockGuard::operator=(KeyLockGuard&& other) noexcept {
+  if (this != &other) {
+    if (owns_lock_) {
+      manager_.Release(key_, mode_);
+    }
+    key_ = std::move(other.key_);
+    mode_ = other.mode_;
+    owns_lock_ = other.owns_lock_;
+    other.owns_lock_ = false;
+  }
+  return *this;
 }
 
 Worker::Worker(std::string name, TransactionReceiver& receiver, lock::LockManager& lock_manager,
@@ -73,18 +96,32 @@ TransactionResult Worker::Process(const txn::TransactionRequest& request) {
     return result;
   }
 
+  [[maybe_unused]] const auto key_guards = AcquireTransactionLocks(request);
   txn::TransactionContext context{request.id};
   for (const auto& operation : request.operations) {
+    const auto key = request.ResolveKey(operation);
+    if (!key.has_value()) {
+      result.state = txn::TransactionState::kAborted;
+      context.MarkAborted();
+      return result;
+    }
+
     switch (operation.type) {
     case txn::OperationType::kGet:
-      ApplyRead(operation, context, result);
+      ApplyRead(operation, *key, context, result);
       break;
     case txn::OperationType::kSet:
-      ApplyWrite(operation, context, result);
+      ApplyWrite(operation, *key, context, result);
       break;
     case txn::OperationType::kDelete:
-      ApplyDelete(operation, result);
+      ApplyDelete(operation, *key, context, result);
       break;
+    case txn::OperationType::kAssertExists:
+    case txn::OperationType::kAssertNotExists:
+    case txn::OperationType::kAssertType:
+    case txn::OperationType::kAssertIntEq:
+    case txn::OperationType::kAssertBytesHashEq:
+    case txn::OperationType::kAssertStringHashEq:
     default:
       result.state = txn::TransactionState::kAborted;
       context.MarkAborted();
@@ -97,34 +134,38 @@ TransactionResult Worker::Process(const txn::TransactionRequest& request) {
     }
   }
 
+  CommitTransaction(request, context);
   context.MarkCommitted();
   result.state = context.state();
   return result;
 }
 
-void Worker::ApplyRead(const txn::Operation& operation, txn::TransactionContext& context,
-                       TransactionResult& result) {
+void Worker::ApplyRead(const txn::Operation& operation, std::string_view key,
+                       txn::TransactionContext& context, TransactionResult& result) {
   OperationResult op_result{};
   op_result.type = operation.type;
-  op_result.key = operation.key;
+  op_result.key = key;
+  op_result.key_id = operation.key_id;
 
-  KeyLockGuard key_guard{lock_manager_, operation.key, lock::LockMode::kShared};
-  std::shared_lock tree_guard{btree_mutex_};
-  const auto found = btree_.Find(operation.key);
+  const auto found = context.ReadThrough(std::string{key},
+                                         [this, &key]() -> std::optional<storage::btree::Record> {
+                                           std::shared_lock tree_guard{btree_mutex_};
+                                           return btree_.Find(std::string{key});
+                                         });
   if (found.has_value()) {
     op_result.success = true;
     op_result.value = found;
-    context.Write(operation.key, *found);
   }
 
   result.operations.push_back(std::move(op_result));
 }
 
-void Worker::ApplyWrite(const txn::Operation& operation, txn::TransactionContext& context,
-                        TransactionResult& result) {
+void Worker::ApplyWrite(const txn::Operation& operation, std::string_view key,
+                        txn::TransactionContext& context, TransactionResult& result) {
   OperationResult op_result{};
   op_result.type = operation.type;
-  op_result.key = operation.key;
+  op_result.key = key;
+  op_result.key_id = operation.key_id;
 
   if (!operation.value.has_value()) {
     result.state = txn::TransactionState::kAborted;
@@ -133,26 +174,64 @@ void Worker::ApplyWrite(const txn::Operation& operation, txn::TransactionContext
     return;
   }
 
-  KeyLockGuard key_guard{lock_manager_, operation.key, lock::LockMode::kExclusive};
-  std::unique_lock tree_guard{btree_mutex_};
-  btree_.Insert(operation.key, *operation.value);
+  context.Write(std::string{key}, *operation.value);
   op_result.success = true;
   op_result.value = operation.value;
-  context.Write(operation.key, *operation.value);
 
   result.operations.push_back(std::move(op_result));
 }
 
-void Worker::ApplyDelete(const txn::Operation& operation, TransactionResult& result) {
+void Worker::ApplyDelete(const txn::Operation& operation, std::string_view key,
+                         txn::TransactionContext& context, TransactionResult& result) {
   OperationResult op_result{};
   op_result.type = operation.type;
-  op_result.key = operation.key;
+  op_result.key = key;
+  op_result.key_id = operation.key_id;
 
-  KeyLockGuard key_guard{lock_manager_, operation.key, lock::LockMode::kExclusive};
-  std::unique_lock tree_guard{btree_mutex_};
-  op_result.success = btree_.Erase(operation.key);
+  const auto existing = context.ReadThrough(
+      std::string{key}, [this, &key]() -> std::optional<storage::btree::Record> {
+        std::shared_lock tree_guard{btree_mutex_};
+        return btree_.Find(std::string{key});
+      });
+
+  op_result.success = existing.has_value();
+  context.StageDelete(std::string{key});
 
   result.operations.push_back(std::move(op_result));
+}
+
+std::vector<Worker::KeyLockGuard>
+Worker::AcquireTransactionLocks(const txn::TransactionRequest& request) {
+  std::vector<std::reference_wrapper<const txn::KeySpec>> sorted_keys(request.keys.begin(),
+                                                                      request.keys.end());
+  std::ranges::sort(sorted_keys, [](const std::reference_wrapper<const txn::KeySpec>& lhs,
+                                    const std::reference_wrapper<const txn::KeySpec>& rhs) {
+    return lhs.get().key < rhs.get().key;
+  });
+
+  std::vector<KeyLockGuard> key_guards;
+  key_guards.reserve(sorted_keys.size());
+  for (const auto& key_spec : sorted_keys) {
+    key_guards.emplace_back(lock_manager_, key_spec.get().key, key_spec.get().mode);
+  }
+  return key_guards;
+}
+
+void Worker::CommitTransaction(const txn::TransactionRequest& request,
+                               txn::TransactionContext& context) {
+  std::unique_lock tree_guard{btree_mutex_};
+  for (const auto& key_spec : request.keys) {
+    if (!context.HasOverlayEntry(key_spec.key)) {
+      continue;
+    }
+
+    const auto staged_value = context.Read(key_spec.key);
+    if (staged_value.has_value()) {
+      btree_.Insert(key_spec.key, *staged_value);
+    } else {
+      [[maybe_unused]] const bool erased = btree_.Erase(key_spec.key);
+    }
+  }
 }
 
 } // namespace jubilant::server

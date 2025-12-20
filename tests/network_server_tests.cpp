@@ -211,7 +211,8 @@ TEST(NetworkServerTest, ClosesConnectionWhenResponseExceedsCap) {
 
   jubilant::txn::Operation set_operation{
       .type = jubilant::txn::OperationType::kSet, .key = "oversized", .value = large_record};
-  jubilant::txn::TransactionRequest seed_request{.id = 11, .operations = {set_operation}};
+  jubilant::txn::TransactionRequest seed_request =
+      jubilant::txn::BuildTransactionRequest(11, {set_operation});
   ASSERT_TRUE(core_server.SubmitTransaction(seed_request));
 
   bool seeded = false;

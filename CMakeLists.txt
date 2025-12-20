@@ -237,6 +237,7 @@ if(JUBILANT_BUILD_TESTS)
     tests/network_server_tests.cpp
     tests/superblock_tests.cpp
     tests/transaction_context_tests.cpp
+    tests/transaction_request_tests.cpp
     tests/value_log_tests.cpp
     tests/wal_tests.cpp
   )

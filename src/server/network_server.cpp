@@ -435,22 +435,41 @@ std::optional<txn::TransactionRequest> NetworkServer::DecodeRequest(const nlohma
     return std::nullopt;
   }
 
-  txn::TransactionRequest request{};
-  request.id = txn_id;
+  std::vector<txn::Operation> operations;
+  operations.reserve(operations_it->size());
   for (const auto& operation_json : *operations_it) {
     const auto operation = DecodeOperation(operation_json);
     if (!operation.has_value()) {
       return std::nullopt;
     }
-    request.operations.push_back(*operation);
+    operations.push_back(*operation);
   }
 
+  auto request = txn::BuildTransactionRequest(txn_id, std::move(operations));
   if (!request.Valid()) {
     return std::nullopt;
   }
 
   return request;
 }
+
+namespace {
+std::optional<storage::btree::ValueType> DecodeValueType(std::string_view value) {
+  if (value == "bytes") {
+    return storage::btree::ValueType::kBytes;
+  }
+  if (value == "string") {
+    return storage::btree::ValueType::kString;
+  }
+  if (value == "int") {
+    return storage::btree::ValueType::kInt64;
+  }
+  if (value == "value_log_ref") {
+    return storage::btree::ValueType::kValueLogRef;
+  }
+  return std::nullopt;
+}
+} // namespace
 
 std::optional<txn::Operation> NetworkServer::DecodeOperation(const nlohmann::json& operation_json) {
   if (!operation_json.is_object()) {
@@ -490,7 +509,9 @@ std::optional<txn::Operation> NetworkServer::DecodeOperation(const nlohmann::jso
       return std::nullopt;
     }
     operation.value = *record;
-  } else if (operation.type == txn::OperationType::kDelete) {
+  } else if (operation.type == txn::OperationType::kDelete ||
+             operation.type == txn::OperationType::kAssertExists ||
+             operation.type == txn::OperationType::kAssertNotExists) {
     if (operation_json.contains("value")) {
       return std::nullopt;
     }
@@ -501,6 +522,35 @@ std::optional<txn::Operation> NetworkServer::DecodeOperation(const nlohmann::jso
         return std::nullopt;
       }
     }
+  } else if (operation.type == txn::OperationType::kAssertType) {
+    const auto expected_type_it = operation_json.find("expected_type");
+    if (expected_type_it == operation_json.end() || !expected_type_it->is_string()) {
+      return std::nullopt;
+    }
+    const auto expected_type = DecodeValueType(expected_type_it->get<std::string>());
+    if (!expected_type.has_value()) {
+      return std::nullopt;
+    }
+    txn::AssertExpectation expectation{};
+    expectation.expected_type = expected_type;
+    operation.expected = expectation;
+  } else if (operation.type == txn::OperationType::kAssertIntEq) {
+    const auto expected_int_it = operation_json.find("expected_int");
+    if (expected_int_it == operation_json.end() || !expected_int_it->is_number_integer()) {
+      return std::nullopt;
+    }
+    txn::AssertExpectation expectation{};
+    expectation.expected_int = expected_int_it->get<std::int64_t>();
+    operation.expected = expectation;
+  } else if (operation.type == txn::OperationType::kAssertBytesHashEq ||
+             operation.type == txn::OperationType::kAssertStringHashEq) {
+    const auto expected_hash_it = operation_json.find("expected_hash");
+    if (expected_hash_it == operation_json.end() || !expected_hash_it->is_string()) {
+      return std::nullopt;
+    }
+    txn::AssertExpectation expectation{};
+    expectation.expected_hash = expected_hash_it->get<std::string>();
+    operation.expected = expectation;
   }
 
   return operation;
@@ -567,6 +617,7 @@ nlohmann::json NetworkServer::EncodeResponse(const TransactionResult& result) {
   for (const auto& op_result : result.operations) {
     nlohmann::json op_json;
     op_json["type"] = OperationTypeToString(op_result.type);
+    op_json["key_id"] = op_result.key_id;
     op_json["key"] = op_result.key;
     op_json["success"] = op_result.success;
     if (op_result.value.has_value()) {
@@ -692,6 +743,18 @@ std::string NetworkServer::OperationTypeToString(txn::OperationType type) {
     return "set";
   case txn::OperationType::kDelete:
     return "del";
+  case txn::OperationType::kAssertExists:
+    return "assert_exists";
+  case txn::OperationType::kAssertNotExists:
+    return "assert_not_exists";
+  case txn::OperationType::kAssertType:
+    return "assert_type";
+  case txn::OperationType::kAssertIntEq:
+    return "assert_int_eq";
+  case txn::OperationType::kAssertBytesHashEq:
+    return "assert_bytes_hash_eq";
+  case txn::OperationType::kAssertStringHashEq:
+    return "assert_string_hash_eq";
   }
   return "unknown";
 }
@@ -703,8 +766,26 @@ std::optional<txn::OperationType> NetworkServer::OperationTypeFromString(std::st
   if (value == "set") {
     return txn::OperationType::kSet;
   }
-  if (value == "del") {
+  if (value == "del" || value == "delete") {
     return txn::OperationType::kDelete;
+  }
+  if (value == "assert_exists") {
+    return txn::OperationType::kAssertExists;
+  }
+  if (value == "assert_not_exists") {
+    return txn::OperationType::kAssertNotExists;
+  }
+  if (value == "assert_type") {
+    return txn::OperationType::kAssertType;
+  }
+  if (value == "assert_int_eq") {
+    return txn::OperationType::kAssertIntEq;
+  }
+  if (value == "assert_bytes_hash_eq") {
+    return txn::OperationType::kAssertBytesHashEq;
+  }
+  if (value == "assert_string_hash_eq") {
+    return txn::OperationType::kAssertStringHashEq;
   }
   return std::nullopt;
 }
