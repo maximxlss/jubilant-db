@@ -1,5 +1,6 @@
 #include "storage/btree/btree.h"
 #include "storage/simple_store.h"
+#include "storage/storage_common.h"
 
 #include <filesystem>
 #include <gtest/gtest.h>
@@ -99,7 +100,7 @@ TEST(SimpleStoreTest, RoutesLargeValuesThroughValueLogAndReloads) {
     store.Sync();
   }
 
-  const auto segment_path = dir / "vlog" / "segment-0.vlog";
+  const auto segment_path = jubilant::storage::ValueLogSegmentPath(dir / "vlog", 0);
   EXPECT_TRUE(std::filesystem::exists(segment_path));
 
   auto reopened = SimpleStore::Open(dir);

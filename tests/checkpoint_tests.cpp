@@ -3,9 +3,9 @@
 #include <gtest/gtest.h>
 #include <optional>
 
+using jubilant::storage::Lsn;
 using jubilant::storage::checkpoint::Checkpointer;
 using jubilant::storage::checkpoint::CheckpointSnapshot;
-using jubilant::storage::wal::Lsn;
 
 TEST(CheckpointerTest, SkipsWhenNoCheckpointRequested) {
   Checkpointer checkpointer;

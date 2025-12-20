@@ -2,6 +2,7 @@
 #include "server/network_server.h"
 #include "server/server.h"
 #include "storage/simple_store.h"
+#include "storage/storage_common.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -349,7 +350,7 @@ TEST_P(DualClientIntegrationTest, PythonAndJubectlStayConsistent) {
     ADD_FAILURE() << "data.pages missing under " << temp_dir_;
   }
   if (scenario.use_large_value) {
-    const auto vlog_path = temp_dir_ / "vlog" / "segment-0.vlog";
+    const auto vlog_path = jubilant::storage::ValueLogSegmentPath(temp_dir_ / "vlog", 0);
     if (std::filesystem::exists(vlog_path)) {
       EXPECT_GT(std::filesystem::file_size(vlog_path), 0U);
     } else {

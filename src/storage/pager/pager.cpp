@@ -72,8 +72,7 @@ Pager Pager::Open(const std::filesystem::path& data_path, std::uint32_t page_siz
     throw std::runtime_error("Page file is corrupt (size mismatch)");
   }
 
-  const std::uint64_t next_page =
-      file_size == 0 ? 0 : static_cast<std::uint64_t>(file_size) / page_size;
+  const PageId next_page = file_size == 0 ? 0 : static_cast<PageId>(file_size) / page_size;
 
   return Pager{PagerConfig{
       .data_path = data_path,
@@ -83,8 +82,8 @@ Pager Pager::Open(const std::filesystem::path& data_path, std::uint32_t page_siz
   }};
 }
 
-std::uint64_t Pager::Allocate(PageType type) {
-  const std::uint64_t page_id = next_page_id_++;
+PageId Pager::Allocate(PageType type) {
+  const PageId page_id = next_page_id_++;
   Page page{};
   page.id = page_id;
   page.type = type;
@@ -116,7 +115,7 @@ void Pager::Write(const Page& page) {
   }
 }
 
-std::optional<Page> Pager::Read(std::uint64_t page_id) const {
+std::optional<Page> Pager::Read(PageId page_id) const {
   if (page_id >= next_page_id_) {
     return std::nullopt;
   }
@@ -136,7 +135,7 @@ void Pager::Sync() const {
   ::fsync(file_descriptor_);
 }
 
-std::uint64_t Pager::page_count() const noexcept {
+PageId Pager::page_count() const noexcept {
   return next_page_id_;
 }
 
@@ -152,7 +151,7 @@ std::uint32_t Pager::page_size() const noexcept {
   return page_size_;
 }
 
-std::uint64_t Pager::OffsetFor(std::uint64_t page_id) const {
+std::uint64_t Pager::OffsetFor(PageId page_id) const {
   return page_id * static_cast<std::uint64_t>(page_size_);
 }
 

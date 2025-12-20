@@ -8,7 +8,7 @@ namespace jubilant::storage::btree {
 
 namespace {
 
-constexpr std::uint64_t kInvalidPageId = std::numeric_limits<std::uint64_t>::max();
+constexpr PageId kInvalidPageId = std::numeric_limits<PageId>::max();
 
 enum class EncodedValueTag : std::uint8_t {
   kInlineBytes = 0,
@@ -22,11 +22,11 @@ struct LeafHeader {
   std::uint8_t is_leaf{1U};
   std::uint16_t entry_count{0};
   std::uint8_t reserved{0};
-  std::uint64_t next_leaf{kInvalidPageId};
+  PageId next_leaf{kInvalidPageId};
 };
 
 constexpr std::size_t kEntryHeaderSize =
-    sizeof(std::uint16_t) + sizeof(std::uint8_t) + sizeof(std::uint64_t) + sizeof(std::uint32_t);
+    sizeof(std::uint16_t) + sizeof(std::uint8_t) + sizeof(std::uint64_t) + sizeof(std::uint64_t);
 
 } // namespace
 
@@ -60,7 +60,7 @@ void BTree::EnsureRootExists() {
   }
 }
 
-void BTree::LoadFromDisk(std::uint64_t root_hint) {
+void BTree::LoadFromDisk(PageId root_hint) {
   if (pager_->page_count() == 0) {
     return;
   }
@@ -133,7 +133,6 @@ void BTree::Insert(const std::string& key, Record record) {
     const auto appended = value_log_->Append(serialized);
     ValueLogRef ref{};
     ref.pointer = appended.pointer;
-    ref.length = static_cast<std::uint32_t>(appended.length);
     ref.type =
         std::holds_alternative<std::string>(record.value) ? ValueType::kString : ValueType::kBytes;
     record.value = ref;
@@ -155,7 +154,7 @@ std::size_t BTree::size() const noexcept {
   return in_memory_.size();
 }
 
-std::uint64_t BTree::root_page_id() const noexcept {
+PageId BTree::root_page_id() const noexcept {
   return root_page_id_;
 }
 
@@ -201,14 +200,14 @@ Page BTree::EncodeLeafPage(const LeafPage& leaf) const {
     }
 
     std::uint8_t tag_byte = 0;
-    std::uint32_t value_len = 0;
+    std::uint64_t value_len = 0;
 
     if (const auto* bytes = std::get_if<std::vector<std::byte>>(&record.value)) {
       tag_byte = static_cast<std::uint8_t>(EncodedValueTag::kInlineBytes);
-      value_len = static_cast<std::uint32_t>(bytes->size());
+      value_len = static_cast<std::uint64_t>(bytes->size());
     } else if (const auto* str = std::get_if<std::string>(&record.value)) {
       tag_byte = static_cast<std::uint8_t>(EncodedValueTag::kInlineString);
-      value_len = static_cast<std::uint32_t>(str->size());
+      value_len = static_cast<std::uint64_t>(str->size());
     } else if (std::holds_alternative<std::int64_t>(record.value)) {
       tag_byte = static_cast<std::uint8_t>(EncodedValueTag::kInlineInt64);
       value_len = sizeof(std::int64_t);
@@ -217,7 +216,7 @@ Page BTree::EncodeLeafPage(const LeafPage& leaf) const {
       tag_byte = ref.type == ValueType::kString
                      ? static_cast<std::uint8_t>(EncodedValueTag::kValueLogString)
                      : static_cast<std::uint8_t>(EncodedValueTag::kValueLogBytes);
-      value_len = ref.length;
+      value_len = ref.pointer.length;
     }
 
     std::memcpy(page.payload.data() + offset, &key_size, sizeof(std::uint16_t));
@@ -229,8 +228,8 @@ Page BTree::EncodeLeafPage(const LeafPage& leaf) const {
                 sizeof(std::uint64_t));
     offset += sizeof(std::uint64_t);
 
-    std::memcpy(page.payload.data() + offset, &value_len, sizeof(std::uint32_t));
-    offset += sizeof(std::uint32_t);
+    std::memcpy(page.payload.data() + offset, &value_len, sizeof(std::uint64_t));
+    offset += sizeof(std::uint64_t);
 
     std::memcpy(page.payload.data() + offset, entry.key.data(), key_size);
     offset += key_size;
@@ -256,7 +255,7 @@ Page BTree::EncodeLeafPage(const LeafPage& leaf) const {
     } else {
       const auto& ref = std::get<ValueLogRef>(record.value);
       if (offset + sizeof(ref.pointer.segment_id) + sizeof(ref.pointer.offset) +
-              sizeof(ref.length) >
+              sizeof(ref.pointer.length) >
           page.payload.size()) {
         throw std::runtime_error("Entry does not fit in page payload");
       }
@@ -265,8 +264,8 @@ Page BTree::EncodeLeafPage(const LeafPage& leaf) const {
       offset += sizeof(ref.pointer.segment_id);
       std::memcpy(page.payload.data() + offset, &ref.pointer.offset, sizeof(ref.pointer.offset));
       offset += sizeof(ref.pointer.offset);
-      std::memcpy(page.payload.data() + offset, &ref.length, sizeof(ref.length));
-      offset += sizeof(ref.length);
+      std::memcpy(page.payload.data() + offset, &ref.pointer.length, sizeof(ref.pointer.length));
+      offset += sizeof(ref.pointer.length);
     }
   }
 
@@ -296,7 +295,7 @@ BTree::LeafPage BTree::DecodeLeafPage(const Page& page) {
     std::uint16_t key_size{};
     std::uint8_t tag_byte{};
     std::uint64_t ttl{};
-    std::uint32_t value_len{};
+    std::uint64_t value_len{};
 
     std::memcpy(&key_size, page.payload.data() + offset, sizeof(std::uint16_t));
     offset += sizeof(std::uint16_t);
@@ -306,8 +305,8 @@ BTree::LeafPage BTree::DecodeLeafPage(const Page& page) {
     std::memcpy(&ttl, page.payload.data() + offset, sizeof(std::uint64_t));
     offset += sizeof(std::uint64_t);
 
-    std::memcpy(&value_len, page.payload.data() + offset, sizeof(std::uint32_t));
-    offset += sizeof(std::uint32_t);
+    std::memcpy(&value_len, page.payload.data() + offset, sizeof(std::uint64_t));
+    offset += sizeof(std::uint64_t);
 
     if (offset + key_size > page.payload.size()) {
       throw std::runtime_error("Corrupt leaf entry key");
@@ -322,22 +321,30 @@ BTree::LeafPage BTree::DecodeLeafPage(const Page& page) {
     const auto tag = static_cast<EncodedValueTag>(tag_byte);
     switch (tag) {
     case EncodedValueTag::kInlineBytes: {
-      if (offset + value_len > page.payload.size()) {
+      if (value_len > page.payload.size()) {
         throw std::runtime_error("Corrupt leaf entry bytes");
       }
-      std::vector<std::byte> data(value_len);
-      std::memcpy(data.data(), page.payload.data() + offset, value_len);
+      const auto len = static_cast<std::size_t>(value_len);
+      if (offset + len > page.payload.size()) {
+        throw std::runtime_error("Corrupt leaf entry bytes");
+      }
+      std::vector<std::byte> data(len);
+      std::memcpy(data.data(), page.payload.data() + offset, len);
       entry.record.value = std::move(data);
-      offset += value_len;
+      offset += len;
       break;
     }
     case EncodedValueTag::kInlineString: {
-      if (offset + value_len > page.payload.size()) {
+      if (value_len > page.payload.size()) {
         throw std::runtime_error("Corrupt leaf entry string");
       }
-      std::string value(reinterpret_cast<const char*>(page.payload.data() + offset), value_len);
+      const auto len = static_cast<std::size_t>(value_len);
+      if (offset + len > page.payload.size()) {
+        throw std::runtime_error("Corrupt leaf entry string");
+      }
+      std::string value(reinterpret_cast<const char*>(page.payload.data() + offset), len);
       entry.record.value = std::move(value);
-      offset += value_len;
+      offset += len;
       break;
     }
     case EncodedValueTag::kInlineInt64: {
@@ -352,8 +359,8 @@ BTree::LeafPage BTree::DecodeLeafPage(const Page& page) {
     }
     case EncodedValueTag::kValueLogBytes:
     case EncodedValueTag::kValueLogString: {
-      if (offset + sizeof(vlog::SegmentPointer::segment_id) + sizeof(vlog::SegmentPointer::offset) +
-              sizeof(std::uint32_t) >
+      if (offset + sizeof(SegmentPointer::segment_id) + sizeof(SegmentPointer::offset) +
+              sizeof(SegmentPointer::length) >
           page.payload.size()) {
         throw std::runtime_error("Corrupt leaf entry value log pointer");
       }
@@ -363,8 +370,11 @@ BTree::LeafPage BTree::DecodeLeafPage(const Page& page) {
       offset += sizeof(ref.pointer.segment_id);
       std::memcpy(&ref.pointer.offset, page.payload.data() + offset, sizeof(ref.pointer.offset));
       offset += sizeof(ref.pointer.offset);
-      std::memcpy(&ref.length, page.payload.data() + offset, sizeof(ref.length));
-      offset += sizeof(ref.length);
+      std::memcpy(&ref.pointer.length, page.payload.data() + offset, sizeof(ref.pointer.length));
+      offset += sizeof(ref.pointer.length);
+      if (value_len != ref.pointer.length) {
+        throw std::runtime_error("Corrupt leaf entry value log length");
+      }
       ref.type = tag == EncodedValueTag::kValueLogString ? ValueType::kString : ValueType::kBytes;
       entry.record.value = ref;
       break;
@@ -387,7 +397,7 @@ void BTree::Persist() {
 }
 
 void BTree::RebuildLeafPages() {
-  std::vector<std::uint64_t> existing_ids;
+  std::vector<PageId> existing_ids;
   existing_ids.reserve(leaf_pages_.size());
   for (const auto& leaf : leaf_pages_) {
     existing_ids.push_back(leaf.page_id);
@@ -450,8 +460,8 @@ std::size_t BTree::EncodedEntrySize(const LeafEntry& entry) {
   } else if (std::holds_alternative<std::int64_t>(entry.record.value)) {
     value_size = sizeof(std::int64_t);
   } else {
-    value_size = sizeof(vlog::SegmentPointer::segment_id) + sizeof(vlog::SegmentPointer::offset) +
-                 sizeof(std::uint32_t);
+    value_size = sizeof(SegmentPointer::segment_id) + sizeof(SegmentPointer::offset) +
+                 sizeof(SegmentPointer::length);
   }
   return key_size + kEntryHeaderSize + value_size;
 }

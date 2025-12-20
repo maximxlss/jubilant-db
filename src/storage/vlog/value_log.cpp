@@ -1,6 +1,7 @@
 #include "storage/vlog/value_log.h"
 
 #include "storage/checksum.h"
+#include "storage/storage_common.h"
 
 #include <filesystem>
 #include <fstream>
@@ -24,6 +25,7 @@ ValueLog::ValueLog(std::filesystem::path base_dir) : base_dir_(std::move(base_di
   if (std::filesystem::exists(segment_path)) {
     next_pointer_.segment_id = 0;
     next_pointer_.offset = std::filesystem::file_size(segment_path);
+    next_pointer_.length = 0;
   }
 }
 
@@ -40,7 +42,7 @@ AppendResult ValueLog::Append(const std::vector<std::byte>& data) {
 
   AppendResult result{};
   result.pointer = next_pointer_;
-  result.length = data.size();
+  result.pointer.length = data.size();
 
   out.write(reinterpret_cast<const char*>(&header), sizeof(header));
   out.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(data.size()));
@@ -50,6 +52,7 @@ AppendResult ValueLog::Append(const std::vector<std::byte>& data) {
   }
 
   next_pointer_.offset += sizeof(header) + data.size();
+  next_pointer_.length = 0;
   return result;
 }
 
@@ -76,6 +79,9 @@ std::optional<std::vector<std::byte>> ValueLog::Read(const SegmentPointer& point
   }
 
   std::vector<std::byte> data(header.length);
+  if (pointer.length != 0 && pointer.length != header.length) {
+    return std::nullopt;
+  }
   input_stream.read(reinterpret_cast<char*>(data.data()),
                     static_cast<std::streamsize>(header.length));
   if (!input_stream.good()) {
@@ -95,8 +101,8 @@ void ValueLog::RunGcCycle() {
   // placeholder keeps the API shape stable until those pieces land.
 }
 
-std::filesystem::path ValueLog::SegmentPath(std::uint32_t segment_id) const {
-  return base_dir_ / ("segment-" + std::to_string(segment_id) + ".vlog");
+std::filesystem::path ValueLog::SegmentPath(SegmentId segment_id) const {
+  return ValueLogSegmentPath(base_dir_, segment_id);
 }
 
 } // namespace jubilant::storage::vlog
